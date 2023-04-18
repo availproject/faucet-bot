@@ -7,6 +7,7 @@
     "build": "babel src --out-dir dist",
     "watch": "nodemon --exec babel-node src/app.js",
     "start": "node dist/app.js",
+    "register": "node dist/register.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -20,6 +21,7 @@
   },
   "homepage": "https://github.com/availproject/faucet-bot#readme",
   "dependencies": {
+    "discord.js": "^14.9.0",
     "dotenv": "^16.0.3"
   },
   "devDependencies": {
