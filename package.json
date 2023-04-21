@@ -21,9 +21,7 @@
   },
   "homepage": "https://github.com/availproject/faucet-bot#readme",
   "dependencies": {
-    "@polkadot/api": "^7.15.1",
-    "@polkadot/util": "^8.7.1",
-    "@polkadot/util-crypto": "^8.7.1",
+    "avail-js-api": "^0.0.1",
     "discord.js": "^14.9.0",
     "dotenv": "^16.0.3"
   },

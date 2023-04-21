@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Collection, SlashCommandBuilder } from 'discord.js';
-import { AvailApi } from './avail';
+import { createApi, transfer } from 'avail-js-api';
 
 export const commands = new Collection();
 
@@ -9,6 +9,7 @@ commands.set('ping', {
     .setName('ping')
     .setDescription('Replies with Pong!'),
   execute: async (interaction) => {
+    console.log('Received ping. Responding with pong.');
     await interaction.reply({ content: "Pong!", ephemeral: true });
   }
 });
@@ -24,20 +25,27 @@ commands.set('deposit', {
   execute: async (interaction) => {
     // Ack the request and give ourselves more time
     await interaction.deferReply({ ephemeral: true });
-
     try {
       // Submit the transfer transaction
-      const Avail = await AvailApi.create({ws:process.env.WS});
       const dest = interaction.options.get('address', true).value;
-      const amount = 1 * Avail.Multiplier;
-      await Avail.transfer({ dest, amount });
+      console.log(`Received deposit request for ${dest}`);
+      const api = await createApi('testnet');
+      const hash = await transfer(api, process.env.SEED_PHRASE, dest, 1)
+      interaction.followUp({ 
+        content: `Transferred 1 AVL to ${dest} using tx hash ${hash}`,
+        ephemeral: true 
+      });
+      console.log(`Transferred 1 AVL to ${dest} using tx hash ${hash}`);
     } catch (error) {
-      console.log('YYYYYYYYYYYYYYYY');
       console.error(error);
+      interaction.followUp({
+        content: `There was a problem transferring to ${dest}. Kindly report to the Avail Team.`,
+        ephemeral: true
+      });
     }
 
     // Let the user know it's pending
-    interaction.followUp({ content: "Status: Pending", ephemeral: true });
+    // interaction.followUp({ content: "Status: Pending", ephemeral: true });
   }
 });
 
