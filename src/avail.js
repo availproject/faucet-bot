@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import { Keyring } from '@polkadot/keyring';
 import { crypto } from '@polkadot/util-crypto';
@@ -6,19 +7,19 @@ export class AvailApi {
   static Rpc = {
     kate: {
       blockLength: {
-	description: "Get Block Length",
-	params: [
+        description: "Get Block Length",
+        params: [
           {
             name: 'at',
             type: 'Hash',
             isOptional: true
           }
-	],
-	type: 'BlockLength'
+        ],
+        type: 'BlockLength'
       },
       queryProof: {
-	description: 'Generate the kate proof for the given `cells`',
-	params: [
+        description: 'Generate the kate proof for the given `cells`',
+        params: [
           {
             name: 'cells',
             type: 'Vec<Cell>'
@@ -28,12 +29,12 @@ export class AvailApi {
             type: 'Hash',
             isOptional: true
           },
-	],
-	type: 'Vec<u8>'
+        ],
+        type: 'Vec<u8>'
       },
       queryDataProof: {
-	description: 'Generate the data proof for the given `index`',
-	params: [
+        description: 'Generate the data proof for the given `index`',
+        params: [
           {
             name: 'data_index',
             type: 'u32'
@@ -43,8 +44,8 @@ export class AvailApi {
             type: 'Hash',
             isOptional: true
           }
-	],
-	type: 'DataProof'
+        ],
+        type: 'DataProof'
       }
     }
   };
@@ -76,8 +77,8 @@ export class AvailApi {
     },
     HeaderExtension: {
       _enum: {
-	V1: 'V1HeaderExtension',
-	VTest: 'VTHeaderExtension'
+        V1: 'V1HeaderExtension',
+        VTest: 'VTHeaderExtension'
       }
     },
     DaHeader: {
@@ -124,14 +125,14 @@ export class AvailApi {
   static SignedExtensions = {
     CheckAppId: {
       extrinsic: {
-	appId: 'AppId'
+        appId: 'AppId'
       },
       payload: {}
     },
   };
 
   static Decimals = 18;
-  static Multiplier = 1000000000000000000;
+  static Multiplier = 1_000_000_000_000_000_000n;
 
   /**
    * API Wrapper for Polkadot.js Api
@@ -141,11 +142,11 @@ export class AvailApi {
    * 
    * @private
    */
-  constructor(api, { keyType = 'sr25519', defaultSource }) {
+  constructor(api, { keyType = 'sr25519', defaultSenderSecret } = {}) {
     this.api = api;
     this.keyring = new Keyring({ type: keyType });
-    if (defaultSource) {
-      this.defaultSource = this.keyFromUri(defaultSource)
+    if (defaultSenderSecret) {
+      this.defaultSender = this.keyFromUri(defaultSenderSecret)
     }
   }
 
@@ -156,34 +157,32 @@ export class AvailApi {
    * Any additional options given will be passed through to Polkadot.js Api.
    *
    * @param {Object} options - Configuration options
-   * @param {string} options.ws -  WS URL endpoint (required)
+   * @param {string} [options.provider] -  WS URL endpoint. Defaults to WS_PROVIDER env var
    * @param {Object} [options.rpc] - RPC Description. Defaults to Avail values.
    * @param {Object} [options.types] - Type Descriptions. Defaults to Avail values.
    * @param {Object} [options.signedExtensions] - Signed Extension Description. Defaults to Avail values.
    * @param {string} [options.keyType] - Key type to use for built-in keychain. Defaults to sr25519.
-   * @param {*} [options.defaultSource] - Key data to initialize source key. If set, transfers will default to using this key as the source account.
+   * @param {*} [options.defaultSenderSecret] - Key data to initialize sender key. Defaults to SENDER_SECRET env var. If available, transfers will default to using this key as the sender account.
    * @returns Promise that resolves to AvailApi instance
    */
-  static async create(options) {
-    console.log(`Creating AvailApi for ws endpoint: ${options.ws}`);
-
+  static async create(options = {}) {
     // Extract known non-api options and save for later
-    let { keyType, defaultSource, ...apiOptions } = options;
+    let { keyType = 'sr25519',
+          defaultSenderSecret = process.env.SENDER_SECRET, ...apiOptions } = options;
 
     // Set defaults for ApiPromise.create options
-    const { ws,
-	    rpc = this.Rpc,
-	    types = this.Types,
-	    signedExtensions = this.SignedExtensions, ...otherOpts } = apiOptions;
+    const { provider = process.env.WS_PROVIDER,
+            rpc = AvailApi.Rpc,
+            types = AvailApi.Types,
+            signedExtensions = AvailApi.SignedExtensions, ...otherOpts } = apiOptions;
 
     // create api async
     // TODO: pass through other opts?
     const api = await ApiPromise.create({
-      ws: new WsProvider(ws), rpc, types, signedExtensions });
+      provider: new WsProvider(provider), rpc, types, signedExtensions });
 
     // create and return new AvailApi instance
-    const instance = new AvailApi(api, { keyType, defaultSource });
-    return instance;
+    return new AvailApi(api, { keyType, defaultSenderSecret });
   }
 
   keyFromUri(data) {
@@ -191,12 +190,15 @@ export class AvailApi {
     return this.keyring.addFromUri(data);
   }
 
-  async transfer({ source = this.defaultSource, dest, amount, callback }) {
-    const transfer = api.tx.balances.transfer(dest, amount);
-    if (callback) {
-      return await transfer.signAndSend(source, {}, callback)
+  async transfer({ sender = this.defaultSender, dest, amount, onResult }) {
+    const nonce = await this.api.rpc.system.accountNextIndex(sender.address);
+    const options = { app_id: 0, nonce };
+    const amountInAVL = BigInt(amount) * AvailApi.Multiplier;
+    const transfer = this.api.tx.balances.transfer(dest, amountInAVL);
+    if (onResult) {
+      return await transfer.signAndSend(sender, options, onResult)
     } else {
-      return await transfer.signAndSend(source)
+      return await transfer.signAndSend(sender, options)
     }
   }
 }

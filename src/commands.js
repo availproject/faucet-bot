@@ -1,6 +1,6 @@
 import 'dotenv/config';
-import { Collection, SlashCommandBuilder } from 'discord.js';
-import { createApi, transfer } from 'avail-js-api';
+import { Collection, SlashCommandBuilder, hyperlink } from 'discord.js';
+import { AvailApi } from './avail';
 
 export const commands = new Collection();
 
@@ -20,22 +20,29 @@ commands.set('deposit', {
     .setDescription('Deposits tokens into an account')
     .addStringOption(option =>
       option.setName('address')
-	.setDescription('The address to deposit into.')
-	.setRequired(true)),
+        .setDescription('The address to deposit into.')
+        .setRequired(true)),
   execute: async (interaction) => {
     // Ack the request and give ourselves more time
     await interaction.deferReply({ ephemeral: true });
+
     try {
       // Submit the transfer transaction
+      const Avail = await AvailApi.create();
       const dest = interaction.options.get('address', true).value;
-      console.log(`Received deposit request for ${dest}`);
-      const api = await createApi('testnet');
-      const hash = await transfer(api, process.env.SEED_PHRASE, dest, 1)
-      interaction.followUp({ 
-        content: `Transferred 1 AVL to ${dest} using tx hash ${hash}`,
-        ephemeral: true 
-      });
-      console.log(`Transferred 1 AVL to ${dest} using tx hash ${hash}`);
+      await Avail.transfer({ dest, amount: 1, onResult: (result) => {
+        if (result.status.isInBlock) {
+          const blockHash = result.status.asInBlock;
+          const link = 'https://testnet.avail.tools/#/explorer/query/' + blockHash;
+          interaction.followUp({
+            content: `Status: Complete
+Amount:  1 AVL
+Txn Hash: ${result.txHash}
+Block Hash: ${blockHash}
+🌐 ${hyperlink('View in explorer', link)}`
+          });
+        }
+      }});
     } catch (error) {
       console.error(error);
       interaction.followUp({
@@ -45,7 +52,7 @@ commands.set('deposit', {
     }
 
     // Let the user know it's pending
-    // interaction.followUp({ content: "Status: Pending", ephemeral: true });
+    interaction.followUp({ content: "Status: Pending", ephemeral: true });
   }
 });
 
