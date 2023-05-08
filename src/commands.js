@@ -28,7 +28,6 @@ commands.set('deposit', {
 
     try {
       // Submit the transfer transaction
-      const Avail = await AvailApi.create();
       const dest = interaction.options.get('address', true).value;
       console.log(`Received deposit request for ${dest}`);
       const api = await createApi('testnet');
