@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Collection, SlashCommandBuilder, hyperlink } from 'discord.js';
-import { AvailApi } from './avail';
+import  { createApi,transfer } from './../avail-js'
 
 export const commands = new Collection();
 
@@ -30,23 +30,27 @@ commands.set('deposit', {
       // Submit the transfer transaction
       const Avail = await AvailApi.create();
       const dest = interaction.options.get('address', true).value;
-      await Avail.transfer({ dest, amount: 1, onResult: (result) => {
+      console.log(`Received deposit request for ${dest}`);
+      const api = await createApi('testnet');
+      const mnemonic = process.env.SEED_PHRASE;
+      await transfer({api, mnemonic, dest, amount: 1, onResult: (result) => {
         if (result.status.isInBlock) {
           const blockHash = result.status.asInBlock;
           const link = 'https://testnet.avail.tools/#/explorer/query/' + blockHash;
           interaction.followUp({
             content: `Status: Complete
-Amount:  1 AVL
-Txn Hash: ${result.txHash}
-Block Hash: ${blockHash}
-🌐 ${hyperlink('View in explorer', link)}`
+            Amount:  1 AVL
+            Txn Hash: ${result.txHash}
+            Block Hash: ${blockHash}
+            🌐 ${hyperlink('View in explorer', link)}`
           });
         }
       }});
+      console.log(`transferred 1 AVL to ${dest}`)
     } catch (error) {
       console.error(error);
       interaction.followUp({
-        content: `There was a problem transferring to ${dest}. Kindly report to the Avail Team.`,
+        content: `There was a problem transferring. Kindly report to the Avail Team.`,
         ephemeral: true
       });
     }

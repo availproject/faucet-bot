@@ -1,9 +1,10 @@
 import 'dotenv/config';
-import { Client, Events, GatewayIntentBits } from 'discord.js';
+import { Client, Events, GatewayIntentBits, Collection } from 'discord.js';
 import { commands } from './commands';
 
 // Discord.js Client
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const cooldowns = new Collection();
 
 // ClientReady event fires once after successful Discord login
 client.once(Events.ClientReady, event => {
@@ -22,7 +23,25 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   try {
-    // Run the command, passing along the interaction
+    // Run the command, passing along the interaction 
+    if (interaction.commandName == 'deposit') {
+      const userId = interaction.user.id;
+      const now = Date.now();
+      const cooldownAmount = 3 * 60 * 1000;
+      if (!cooldowns.has(userId)) {
+        cooldowns.set(userId, now)
+      }
+      else {
+        const expirationTime = cooldowns.get(userId) + cooldownAmount;
+
+        if (now < expirationTime) {
+          const timeLeft = (expirationTime - now) / 1000;
+          return interaction.reply({ content: `Please wait ${timeLeft.toFixed(1)} more second(s) before reusing the command.`, ephemeral: true });
+        }
+
+        cooldowns.set(userId, now);
+      }
+    }
     await command.execute(interaction);
 
   } catch (error) {
