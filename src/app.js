@@ -8,7 +8,7 @@ const cooldowns = new Collection();
 
 // ClientReady event fires once after successful Discord login
 client.once(Events.ClientReady, event => {
-	console.log(`Ready! Logged in as ${event.user.tag}`);
+  console.log(`Ready! Logged in as ${event.user.tag}`);
 });
 
 // InteractionCreate event fires when the user invokes a slash command
@@ -27,6 +27,8 @@ client.on(Events.InteractionCreate, async interaction => {
     if (interaction.commandName == 'deposit') {
       const userId = interaction.user.id;
       const now = Date.now();
+
+      //3 minutes of cooldown
       const cooldownAmount = 3 * 60 * 1000;
       if (!cooldowns.has(userId)) {
         cooldowns.set(userId, now)
@@ -49,11 +51,11 @@ client.on(Events.InteractionCreate, async interaction => {
     console.error(error);
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp({
-        content: 'There was an error while executing this command!', ephemeral: true 
+        content: 'There was an error while executing this command!', ephemeral: true
       });
     } else {
-      await interaction.reply({ 
-        content: 'There was an error while executing this command!', ephemeral: true 
+      await interaction.reply({
+        content: 'There was an error while executing this command!', ephemeral: true
       });
     }
   }
