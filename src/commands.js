@@ -32,12 +32,13 @@ commands.set('deposit', {
       console.log(`Received deposit request for ${dest}`);
       const api = await createApi('testnet');
       const mnemonic = process.env.SEED_PHRASE;
+      interaction.followUp({ content: "Status: Pending", ephemeral: true });
       await transfer({
         api, mnemonic, dest, amount: 1, onResult: (result) => {
           if (result.status.isInBlock) {
             const blockHash = result.status.asInBlock;
-            const link = 'https://testnet.avail.tools/#/explorer/query/' + blockHash;
-            interaction.followUp({
+            const link = 'https://kate.avail.tools/#/explorer/query/' + blockHash;
+            interaction.editReply({
               content: `Status: Complete
             Amount:  1 AVL
             Txn Hash: ${result.txHash}
@@ -57,7 +58,6 @@ commands.set('deposit', {
     }
 
     // Let the user know it's pending
-    interaction.followUp({ content: "Status: Pending", ephemeral: true });
   }
 });
 
