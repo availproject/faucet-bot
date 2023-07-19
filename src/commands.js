@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Collection, SlashCommandBuilder, hyperlink } from 'discord.js';
-import { createApi, transfer } from './../avail-js'
+import { getDecimals, initialize, formatNumberToBalance, getKeyringFromSeed, isValidAddress } from "avail-js-sdk"
 
 export const commands = new Collection();
 
@@ -29,25 +29,34 @@ commands.set('deposit', {
     try {
       // Submit the transfer transaction
       const dest = interaction.options.get('address', true).value;
+      if (!isValidAddress(dest)) throw new Error("Invalid Recipient");
       console.log(`Received deposit request for ${dest}`);
-      const api = await createApi('testnet');
       const mnemonic = process.env.SEED_PHRASE;
-      await transfer({
-        api, mnemonic, dest, amount: 1, onResult: (result) => {
-          if (result.status.isInBlock) {
-            const blockHash = result.status.asInBlock;
+      const api = await initialize()
+      // const api = await createApi('local');
+      const keyring = getKeyringFromSeed(mnemonic)
+      const options = { app_id: 0, nonce: -1 }
+      const decimals = getDecimals(api)
+      const amount = formatNumberToBalance(1500, decimals)
+      await api.tx.balances
+        .transfer(dest, amount)
+        .signAndSend(keyring, options, ({ status, txHash }) => {
+          console.log(`Transaction status: ${status.type}`);
+          if (status.isFinalized) {
+            const blockHash = status.isFinalized;
             const link = 'https://testnet.avail.tools/#/explorer/query/' + blockHash;
+            console.log(`transferred 1000 AVL to ${dest}`);
+            console.log(`Transaction hash ${txHash.toHex()}`);
+            console.log(`Transaction included at blockHash ${status.asFinalized}`);
             interaction.followUp({
               content: `Status: Complete
-            Amount:  1 AVL
-            Txn Hash: ${result.txHash}
+            Amount:  100 AVL
+            Txn Hash: ${txHash}
             Block Hash: ${blockHash}
             🌐 ${hyperlink('View in explorer', link)}`
             });
           }
-        }
-      });
-      console.log(`transferred 1 AVL to ${dest}`)
+        });
     } catch (error) {
       console.error(error);
       interaction.followUp({

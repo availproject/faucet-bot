@@ -1,4 +1,0 @@
-[submodule "avail-js"]
-	path = avail-js
-	url = https://github.com/prabal-banerjee/avail-js.git
-	branch = 47/fn_chg

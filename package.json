@@ -21,8 +21,10 @@
   },
   "homepage": "https://github.com/availproject/faucet-bot#readme",
   "dependencies": {
+    "avail-js-sdk": "^0.0.10",
     "discord.js": "^14.11.0",
-    "dotenv": "^16.0.3"
+    "dotenv": "^16.0.3",
+    "mongodb": "^5.7.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.21.5",
