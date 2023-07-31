@@ -61,7 +61,7 @@ client.on(Events.InteractionCreate, async interaction => {
       if (depositInfo) {
         const { tokens, endDate } = depositInfo;
 
-        if (tokens >= 15000 && Date.now() < endDate) {
+        if (tokens > 22499 && Date.now() < endDate) {
           const remainingDays = Math.ceil((endDate - Date.now()) / (24 * 60 * 60 * 1000));
           return interaction.reply({ content: `You have reached the deposit limit. Please wait ${remainingDays} day(s) before depositing again.`, ephemeral: true });
         }
