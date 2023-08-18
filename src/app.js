@@ -36,7 +36,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
   try {
     // Run the command, passing along the interaction 
-    if (interaction.commandName == 'deposit') {
+    if (interaction.commandName == 'deposit' || interaction.commandName == 'balance') {
       const userId = interaction.user.id;
       const now = Date.now();
 

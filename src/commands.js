@@ -70,6 +70,51 @@ commands.set('deposit', {
   }
 });
 
+commands.set('balance', {
+  data: new SlashCommandBuilder()
+    .setName('balance')
+    .setDescription('Balance of a given address')
+    .addStringOption(option =>
+      option.setName('address')
+        .setDescription('Address to check balance of.')
+        .setRequired(true)),
+  execute: async (interaction) => {
+    // Ack the request and give ourselves more time
+    await interaction.deferReply({ ephemeral: true });
+
+    try {
+      // Submit the transfer transaction
+      const address = interaction.options.get('address', true).value;
+      if (!isValidAddress(address)) throw new Error("Invalid Recipient");
+      console.log(`Received balance request for ${address}`);
+      const mnemonic = process.env.SEED_PHRASE;
+      const api = await initialize("wss://dymension-devnet.avail.tools/ws")
+      // const api = await createApi('local');
+      const decimals = getDecimals(api)
+      let { data: { free: currentFree } } = await api.query.system.account(address);
+      // Retrieve the account balance system module
+      const {  data: balance } = await api.query.system.account(address);
+      let decimal_amount = balance.free/Math.pow(10,18);
+      console.log(`balance of ${address} is ${decimal_amount} `);
+
+      interaction.followUp({
+        content: `Status: Complete
+        Balance:  ${decimal_amount}`
+      });
+    } catch (error) {
+      console.error(error);
+      interaction.followUp({
+        content: `There was a problem with the checking balance. Kindly report to the Avail Team.`,
+        ephemeral: true
+      });
+    }
+
+    // Let the user know it's pending
+    // interaction.followUp({ content: "Status: Pending", ephemeral: true });
+  }
+});
+
+
 export const commandsJSON =
   [...commands]
     .map(([name, cmd]) => cmd.data.toJSON());
