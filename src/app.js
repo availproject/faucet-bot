@@ -36,7 +36,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
   try {
     // Run the command, passing along the interaction 
-    if (interaction.commandName == 'deposit' || interaction.commandName == 'balance') {
+    if (interaction.commandName == 'deposit') {
       const userId = interaction.user.id;
       const now = Date.now();
 
@@ -61,7 +61,7 @@ client.on(Events.InteractionCreate, async interaction => {
       if (depositInfo) {
         const { tokens, endDate } = depositInfo;
 
-        if (tokens > 22499 && Date.now() < endDate) {
+        if (tokens > 59999 && Date.now() < endDate) {
           const remainingDays = Math.ceil((endDate - Date.now()) / (24 * 60 * 60 * 1000));
           return interaction.reply({ content: `You have reached the deposit limit. Please wait ${remainingDays} day(s) before depositing again.`, ephemeral: true });
         }
@@ -75,12 +75,12 @@ client.on(Events.InteractionCreate, async interaction => {
       // Update the user's token balance and perform the transfer
       // Add the deposited amount to the existing balance
 
-      const depositedAmount = 1500; // Replace with the actual deposited amount
+      const depositedAmount = 30000; // Replace with the actual deposited amount
       const existingDepositInfo = await db.collection('depositInfo').findOne({ userId });
       const { tokens, endDate } = existingDepositInfo;
 
       // Check if the user has reached the deposit limit
-      if (tokens >= 15000 && Date.now() < endDate) {
+      if (tokens >= 60000 && Date.now() < endDate) {
         const remainingDays = Math.ceil((endDate - Date.now()) / (24 * 60 * 60 * 1000));
         return interaction.reply({ content: `You have reached the deposit limit. Please wait ${remainingDays} day(s) before depositing again.`, ephemeral: true });
       }
@@ -89,8 +89,8 @@ client.on(Events.InteractionCreate, async interaction => {
       const totalTokens = tokens + depositedAmount;
 
       // Check if the total tokens exceed the deposit limit
-      if (totalTokens > 15000) {
-        const remainingTokens = 15000 - tokens;
+      if (totalTokens > 60000) {
+        const remainingTokens = 60000 - tokens;
         const remainingDays = Math.ceil((endDate - Date.now()) / (24 * 60 * 60 * 1000));
         return interaction.reply({ content: `You can deposit a maximum of ${remainingTokens} tokens. Please wait ${remainingDays} day(s) before depositing again.`, ephemeral: true });
       }

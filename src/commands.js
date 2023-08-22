@@ -37,7 +37,7 @@ commands.set('deposit', {
       const keyring = getKeyringFromSeed(mnemonic)
       const options = { app_id: 0, nonce: -1 }
       const decimals = getDecimals(api)
-      const amount = formatNumberToBalance(1500, decimals)
+      const amount = formatNumberToBalance(30000, decimals)
       await api.tx.balances
         .transfer(dest, amount)
         .signAndSend(keyring, options, ({ status, txHash }) => {
@@ -50,7 +50,7 @@ commands.set('deposit', {
             console.log(`Transaction included at blockHash ${status.asFinalized}`);
             interaction.followUp({
               content: `Status: Complete
-            Amount:  1500 AVL
+            Amount:  30000 AVL
             Txn Hash: ${txHash}
             Block Hash: ${blockHash}
             🌐 ${hyperlink('View in explorer', link)}`
