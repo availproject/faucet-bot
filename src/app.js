@@ -55,49 +55,59 @@ client.on(Events.InteractionCreate, async interaction => {
 
         cooldowns.set(userId, now);
       }
-      // Check if the user has exceeded the deposit limit
-      const depositInfo = await db.collection('depositInfo').findOne({ userId });
 
-      if (depositInfo) {
-        const { tokens, endDate } = depositInfo;
+      // role for rollup user - 1131271197217280140
+      const userRoles = interaction.member.roles.cache; // Get the roles of the user
+      const bypassRole = '1131271197217280140'
+      const hasBypassRole = userRoles.has(bypassRole);
+      if (!hasBypassRole) {
+        console.log(`does not have the bypass role ${interaction.user.id}`)
+        return interaction.reply({ content: `You do not have the required role to use this command.`, ephemeral: true });
+      }
+      else {
+        // Check if the user has exceeded the deposit limit
+        const depositInfo = await db.collection('depositInfo').findOne({ userId });
 
-        if (tokens > 59999 && Date.now() < endDate) {
+        if (depositInfo) {
+          const { tokens, endDate } = depositInfo;
+
+          if (tokens > 59999 && Date.now() < endDate) {
+            const remainingDays = Math.ceil((endDate - Date.now()) / (24 * 60 * 60 * 1000));
+            return interaction.reply({ content: `You have reached the deposit limit. Please wait ${remainingDays} day(s) before depositing again.`, ephemeral: true });
+          }
+        } else {
+          // If no deposit info exists for the user, create a new entry
+          const newDepositInfo = { userId, tokens: 0, endDate: Date.now() + (15 * 24 * 60 * 60 * 1000) };
+          await db.collection('depositInfo').insertOne(newDepositInfo);
+        }
+
+        // Proceed with the deposit logic here
+        // Update the user's token balance and perform the transfer
+        // Add the deposited amount to the existing balance
+
+        const depositedAmount = 30000; // Replace with the actual deposited amount
+        const existingDepositInfo = await db.collection('depositInfo').findOne({ userId });
+        const { tokens, endDate } = existingDepositInfo;
+
+        // Check if the user has reached the deposit limit
+        if (tokens >= 60000 && Date.now() < endDate) {
           const remainingDays = Math.ceil((endDate - Date.now()) / (24 * 60 * 60 * 1000));
           return interaction.reply({ content: `You have reached the deposit limit. Please wait ${remainingDays} day(s) before depositing again.`, ephemeral: true });
         }
-      } else {
-        // If no deposit info exists for the user, create a new entry
-        const newDepositInfo = { userId, tokens: 0, endDate: Date.now() + (15 * 24 * 60 * 60 * 1000) };
-        await db.collection('depositInfo').insertOne(newDepositInfo);
+
+        // Calculate the total tokens after the deposit
+        const totalTokens = tokens + depositedAmount;
+
+        // Check if the total tokens exceed the deposit limit
+        if (totalTokens > 60000) {
+          const remainingTokens = 60000 - tokens;
+          const remainingDays = Math.ceil((endDate - Date.now()) / (24 * 60 * 60 * 1000));
+          return interaction.reply({ content: `You can deposit a maximum of ${remainingTokens} tokens. Please wait ${remainingDays} day(s) before depositing again.`, ephemeral: true });
+        }
+
+        // Update the user's deposit information and perform the transfer
+        await db.collection('depositInfo').updateOne({ userId }, { $set: { tokens: totalTokens } });
       }
-
-      // Proceed with the deposit logic here
-      // Update the user's token balance and perform the transfer
-      // Add the deposited amount to the existing balance
-
-      const depositedAmount = 30000; // Replace with the actual deposited amount
-      const existingDepositInfo = await db.collection('depositInfo').findOne({ userId });
-      const { tokens, endDate } = existingDepositInfo;
-
-      // Check if the user has reached the deposit limit
-      if (tokens >= 60000 && Date.now() < endDate) {
-        const remainingDays = Math.ceil((endDate - Date.now()) / (24 * 60 * 60 * 1000));
-        return interaction.reply({ content: `You have reached the deposit limit. Please wait ${remainingDays} day(s) before depositing again.`, ephemeral: true });
-      }
-
-      // Calculate the total tokens after the deposit
-      const totalTokens = tokens + depositedAmount;
-
-      // Check if the total tokens exceed the deposit limit
-      if (totalTokens > 60000) {
-        const remainingTokens = 60000 - tokens;
-        const remainingDays = Math.ceil((endDate - Date.now()) / (24 * 60 * 60 * 1000));
-        return interaction.reply({ content: `You can deposit a maximum of ${remainingTokens} tokens. Please wait ${remainingDays} day(s) before depositing again.`, ephemeral: true });
-      }
-
-      // Update the user's deposit information and perform the transfer
-      await db.collection('depositInfo').updateOne({ userId }, { $set: { tokens: totalTokens } });
-
     }
 
     if (interaction.commandName == 'force-transfer') {
@@ -106,7 +116,7 @@ client.on(Events.InteractionCreate, async interaction => {
       const hasBypassRole = userRoles.has(bypassRole);
 
       if (!hasBypassRole) {
-        console.log(`does not have the bypass role ${interaction.user.id}` )
+        console.log(`does not have the bypass role ${interaction.user.id}`)
         return interaction.reply({ content: `You do not have the required role to use this command.`, ephemeral: true });
       }
       else {
