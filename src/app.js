@@ -99,6 +99,38 @@ client.on(Events.InteractionCreate, async interaction => {
       await db.collection('depositInfo').updateOne({ userId }, { $set: { tokens: totalTokens } });
 
     }
+
+    if (interaction.commandName == 'force-transfer') {
+      const userRoles = interaction.member.roles.cache; // Get the roles of the user
+      const bypassRole = '1144103971116560465'
+      const hasBypassRole = userRoles.has(bypassRole);
+
+      if (!hasBypassRole) {
+        console.log(`does not have the bypass role ${interaction.user.id}` )
+        return interaction.reply({ content: `You do not have the required role to use this command.`, ephemeral: true });
+      }
+      else {
+        console.log(`using the force transfer and hasBypassRole: ${hasBypassRole}`);
+        const userId = interaction.user.id;
+        const now = Date.now();
+
+        //10 seconds of cooldown
+        const cooldownAmount = 20 * 1000;
+        if (!cooldowns.has(userId)) {
+          cooldowns.set(userId, now)
+        }
+        else {
+          const expirationTime = cooldowns.get(userId) + cooldownAmount;
+
+          if (now < expirationTime) {
+            const timeLeft = (expirationTime - now) / 1000;
+            return interaction.reply({ content: `Please wait ${timeLeft.toFixed(1)} more second(s) before reusing the command.`, ephemeral: true });
+          }
+
+          cooldowns.set(userId, now);
+        }
+      }
+    }
     await command.execute(interaction);
 
   } catch (error) {
