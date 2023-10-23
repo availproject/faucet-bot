@@ -32,25 +32,25 @@ commands.set('deposit', {
       if (!isValidAddress(dest)) throw new Error("Invalid Recipient");
       console.log(`Received deposit request for ${dest}`);
       const mnemonic = process.env.SEED_PHRASE;
-      const api = await initialize("wss://dymension-devnet.avail.tools/ws")
+      const api = await initialize("wss://kate.avail.tools/ws")
       // const api = await createApi('local');
       const keyring = getKeyringFromSeed(mnemonic)
       const options = { app_id: 0, nonce: -1 }
       const decimals = getDecimals(api)
-      const amount = formatNumberToBalance(30000, decimals)
+      const amount = formatNumberToBalance(1, decimals)
       await api.tx.balances
         .transfer(dest, amount)
         .signAndSend(keyring, options, ({ status, txHash }) => {
           console.log(`Transaction status: ${status.type}`);
           if (status.isFinalized) {
             const blockHash = status.asFinalized;
-            const link = 'https://dymension-devnet.avail.tools/#/explorer/query/' + blockHash;
-            console.log(`transferred 1000 AVL to ${dest}`);
+            const link = 'https://kate.avail.tools/#/explorer/query/' + blockHash;
+            console.log(`transferred 1 AVL to ${dest}`);
             console.log(`Transaction hash ${txHash.toHex()}`);
             console.log(`Transaction included at blockHash ${status.asFinalized}`);
             interaction.followUp({
               content: `Status: Complete
-            Amount:  30000 AVL
+            Amount:  1 AVL
             Txn Hash: ${txHash}
             Block Hash: ${blockHash}
             🌐 ${hyperlink('View in explorer', link)}`
@@ -88,7 +88,7 @@ commands.set('balance', {
       if (!isValidAddress(address)) throw new Error("Invalid Recipient");
       console.log(`Received balance request for ${address}`);
       const mnemonic = process.env.SEED_PHRASE;
-      const api = await initialize("wss://dymension-devnet.avail.tools/ws")
+      const api = await initialize("wss://kate.avail.tools/ws")
       // const api = await createApi('local');
       const decimals = getDecimals(api)
       let { data: { free: currentFree } } = await api.query.system.account(address);
@@ -114,7 +114,8 @@ commands.set('balance', {
   }
 });
 
-
+const override_user = false;
+if (override_user) {
 commands.set('force-transfer', {
   data: new SlashCommandBuilder()
     .setName('force-transfer')
@@ -175,6 +176,7 @@ commands.set('force-transfer', {
     interaction.followUp({ content: "Status: Pending", ephemeral: true });
   }
 });
+}
 
 export const commandsJSON =
   [...commands]

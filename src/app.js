@@ -39,9 +39,10 @@ client.on(Events.InteractionCreate, async interaction => {
     if (interaction.commandName == 'deposit') {
       const userId = interaction.user.id;
       const now = Date.now();
+      console.log(`userId: ${userId} now: ${now}`);
 
-      //10 seconds of cooldown
-      const cooldownAmount = 20 * 1000;
+      //10 minutes of cooldown
+      const cooldownAmount = 10 * 60 * 1000;
       if (!cooldowns.has(userId)) {
         cooldowns.set(userId, now)
       }
@@ -49,95 +50,91 @@ client.on(Events.InteractionCreate, async interaction => {
         const expirationTime = cooldowns.get(userId) + cooldownAmount;
 
         if (now < expirationTime) {
-          const timeLeft = (expirationTime - now) / 1000;
-          return interaction.reply({ content: `Please wait ${timeLeft.toFixed(1)} more second(s) before reusing the command.`, ephemeral: true });
+          const timeLeft = Math.ceil(((expirationTime - now) / (1*60 *1000)));
+          console.log(`timeLeft: ${timeLeft}`);
+          return interaction.reply({ content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`, ephemeral: true });
         }
 
         cooldowns.set(userId, now);
       }
 
-      // role for rollup user - 1131271197217280140
-      const userRoles = interaction.member.roles.cache; // Get the roles of the user
-      const bypassRole = '1131271197217280140'
-      const hasBypassRole = userRoles.has(bypassRole);
-      if (!hasBypassRole) {
-        console.log(`does not have the bypass role ${interaction.user.id}`)
-        return interaction.reply({ content: `You do not have the required role to use this command.`, ephemeral: true });
-      }
-      else {
-        // Check if the user has exceeded the deposit limit
-        const depositInfo = await db.collection('depositInfo').findOne({ userId });
+      // Check if the user has exceeded the deposit limit
+      const depositInfo = await db.collection('depositInfo').findOne({ userId });
 
-        if (depositInfo) {
-          const { tokens, endDate } = depositInfo;
+      if (depositInfo) {
+        const { tokens, endDate } = depositInfo;
+        console.log(`tokens: ${tokens} endDate: ${endDate} now: ${now}`);
 
-          if (tokens > 59999 && Date.now() < endDate) {
-            const remainingDays = Math.ceil((endDate - Date.now()) / (24 * 60 * 60 * 1000));
-            return interaction.reply({ content: `You have reached the deposit limit. Please wait ${remainingDays} day(s) before depositing again.`, ephemeral: true });
-          }
-        } else {
-          // If no deposit info exists for the user, create a new entry
-          const newDepositInfo = { userId, tokens: 0, endDate: Date.now() + (15 * 24 * 60 * 60 * 1000) };
-          await db.collection('depositInfo').insertOne(newDepositInfo);
-        }
-
-        // Proceed with the deposit logic here
-        // Update the user's token balance and perform the transfer
-        // Add the deposited amount to the existing balance
-
-        const depositedAmount = 30000; // Replace with the actual deposited amount
-        const existingDepositInfo = await db.collection('depositInfo').findOne({ userId });
-        const { tokens, endDate } = existingDepositInfo;
-
-        // Check if the user has reached the deposit limit
-        if (tokens >= 60000 && Date.now() < endDate) {
+        if (tokens > 99 && Date.now() < endDate) {
           const remainingDays = Math.ceil((endDate - Date.now()) / (24 * 60 * 60 * 1000));
           return interaction.reply({ content: `You have reached the deposit limit. Please wait ${remainingDays} day(s) before depositing again.`, ephemeral: true });
         }
-
-        // Calculate the total tokens after the deposit
-        const totalTokens = tokens + depositedAmount;
-
-        // Check if the total tokens exceed the deposit limit
-        if (totalTokens > 60000) {
-          const remainingTokens = 60000 - tokens;
-          const remainingDays = Math.ceil((endDate - Date.now()) / (24 * 60 * 60 * 1000));
-          return interaction.reply({ content: `You can deposit a maximum of ${remainingTokens} tokens. Please wait ${remainingDays} day(s) before depositing again.`, ephemeral: true });
-        }
-
-        // Update the user's deposit information and perform the transfer
-        await db.collection('depositInfo').updateOne({ userId }, { $set: { tokens: totalTokens } });
+      } else {
+        // If no deposit info exists for the user, create a new entry
+        const newDepositInfo = { userId, tokens: 0, endDate: Date.now() + (15 * 24 * 60 * 60 * 1000) };
+        await db.collection('depositInfo').insertOne(newDepositInfo);
       }
+
+      // Proceed with the deposit logic here
+      // Update the user's token balance and perform the transfer
+      // Add the deposited amount to the existing balance
+
+      const depositedAmount = 1; // Replace with the actual deposited amount
+      const existingDepositInfo = await db.collection('depositInfo').findOne({ userId });
+      const { tokens, endDate } = existingDepositInfo;
+
+      // Check if the user has reached the deposit limit
+      if (tokens >= 100 && Date.now() < endDate) {
+        const remainingDays = Math.ceil((endDate - Date.now()) / (24 * 60 * 60 * 1000));
+        return interaction.reply({ content: `You have reached the deposit limit. Please wait ${remainingDays} day(s) before depositing again.`, ephemeral: true });
+      }
+
+      // Calculate the total tokens after the deposit
+      const totalTokens = tokens + depositedAmount;
+
+      // Check if the total tokens exceed the deposit limit
+      if (totalTokens > 100) {
+        const remainingTokens = 100 - tokens;
+        const remainingDays = Math.ceil((endDate - Date.now()) / (24 * 60 * 60 * 1000));
+        return interaction.reply({ content: `You can deposit a maximum of ${remainingTokens} tokens. Please wait ${remainingDays} day(s) before depositing again.`, ephemeral: true });
+      }
+
+      // Update the user's deposit information and perform the transfer
+      await db.collection('depositInfo').updateOne({ userId }, { $set: { tokens: totalTokens } });
+
     }
 
-    if (interaction.commandName == 'force-transfer') {
-      const userRoles = interaction.member.roles.cache; // Get the roles of the user
-      const bypassRole = '1144103971116560465'
-      const hasBypassRole = userRoles.has(bypassRole);
+    const override_user = false;
+    if (override_user) {
+      if (interaction.commandName == 'force-transfer') {
+        const userRoles = interaction.member.roles.cache; // Get the roles of the user
+        const bypassRole = '1144103971116560465'
+        const hasBypassRole = userRoles.has(bypassRole);
 
-      if (!hasBypassRole) {
-        console.log(`does not have the bypass role ${interaction.user.id}`)
-        return interaction.reply({ content: `You do not have the required role to use this command.`, ephemeral: true });
-      }
-      else {
-        console.log(`using the force transfer and hasBypassRole: ${hasBypassRole}`);
-        const userId = interaction.user.id;
-        const now = Date.now();
-
-        //10 seconds of cooldown
-        const cooldownAmount = 20 * 1000;
-        if (!cooldowns.has(userId)) {
-          cooldowns.set(userId, now)
+        if (!hasBypassRole) {
+          console.log(`does not have the bypass role ${interaction.user.id}`)
+          return interaction.reply({ content: `You do not have the required role to use this command.`, ephemeral: true });
         }
         else {
-          const expirationTime = cooldowns.get(userId) + cooldownAmount;
+          console.log(`using the force transfer and hasBypassRole: ${hasBypassRole}`);
+          const userId = interaction.user.id;
+          const now = Date.now();
 
-          if (now < expirationTime) {
-            const timeLeft = (expirationTime - now) / 1000;
-            return interaction.reply({ content: `Please wait ${timeLeft.toFixed(1)} more second(s) before reusing the command.`, ephemeral: true });
+          //10 seconds of cooldown
+          const cooldownAmount = 20 * 1000;
+          if (!cooldowns.has(userId)) {
+            cooldowns.set(userId, now)
           }
+          else {
+            const expirationTime = cooldowns.get(userId) + cooldownAmount;
 
-          cooldowns.set(userId, now);
+            if (now < expirationTime) {
+              const timeLeft = (expirationTime - now) / 1000;
+              return interaction.reply({ content: `Please wait ${timeLeft.toFixed(1)} more second(s) before reusing the command.`, ephemeral: true });
+            }
+
+            cooldowns.set(userId, now);
+          }
         }
       }
     }

@@ -1507,10 +1507,10 @@ array.prototype.reduce@^1.0.5:
     es-array-method-boxes-properly "^1.0.0"
     is-string "^1.0.7"
 
-avail-js-sdk@^0.0.10:
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/avail-js-sdk/-/avail-js-sdk-0.0.10.tgz#51c836836fae5aa50ff8ffa47a978d79dc07448c"
-  integrity sha512-1W7b3pCVNRc1wZGZGLrBJwylEtVmqPKlbyKLvq8ojY7XVBQWc4MhhQC/MwzoANv1aJxVDdaR5JDCAi0p3XDzTw==
+avail-js-sdk@^0.0.11:
+  version "0.0.11"
+  resolved "https://registry.yarnpkg.com/avail-js-sdk/-/avail-js-sdk-0.0.11.tgz#31e094eb858065d6abffe3a928535cfe75059574"
+  integrity sha512-vTxs++iC2NEzzJOg5GrQmSUuVD639Sl8jTzW/ZagCRiUui+fC3Hb7cK5dPWzr+EQ2TH2Kohxtvj22vGw3vhtWA==
   dependencies:
     "@polkadot/api" "^10.9.1"
 
