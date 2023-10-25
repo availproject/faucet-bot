@@ -32,7 +32,9 @@ commands.set('deposit', {
       if (!isValidAddress(dest)) throw new Error("Invalid Recipient");
       console.log(`Received deposit request for ${dest}`);
       const mnemonic = process.env.SEED_PHRASE;
-      const api = await initialize("wss://kate.avail.tools/ws")
+      const ws_url = process.env.WS_URL;
+      const http_url = process.env.HTTP_URL;
+      const api = await initialize(ws_url);
       // const api = await createApi('local');
       const keyring = getKeyringFromSeed(mnemonic)
       const options = { app_id: 0, nonce: -1 }
@@ -44,7 +46,7 @@ commands.set('deposit', {
           console.log(`Transaction status: ${status.type}`);
           if (status.isFinalized) {
             const blockHash = status.asFinalized;
-            const link = 'https://kate.avail.tools/#/explorer/query/' + blockHash;
+            const link = http_url + '#/explorer/query/' + blockHash;
             console.log(`transferred 1 AVL to ${dest}`);
             console.log(`Transaction hash ${txHash.toHex()}`);
             console.log(`Transaction included at blockHash ${status.asFinalized}`);
