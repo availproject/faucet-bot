@@ -47,7 +47,7 @@ commands.set('deposit', {
           if (status.isFinalized) {
             const blockHash = status.asFinalized;
             const link = http_url + '#/explorer/query/' + blockHash;
-            console.log(`transferred 1 AVL to ${dest}`);
+            console.log(`transferred 11 AVL to ${dest}`);
             console.log(`Transaction hash ${txHash.toHex()}`);
             console.log(`Transaction included at blockHash ${status.asFinalized}`);
             interaction.followUp({
