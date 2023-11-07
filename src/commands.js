@@ -39,7 +39,7 @@ commands.set('deposit', {
       const keyring = getKeyringFromSeed(mnemonic)
       const options = { app_id: 0, nonce: -1 }
       const decimals = getDecimals(api)
-      const amount = formatNumberToBalance(1, decimals)
+      const amount = formatNumberToBalance(11, decimals)
       await api.tx.balances
         .transfer(dest, amount)
         .signAndSend(keyring, options, ({ status, txHash }) => {
