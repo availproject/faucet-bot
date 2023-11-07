@@ -90,7 +90,8 @@ commands.set('balance', {
       if (!isValidAddress(address)) throw new Error("Invalid Recipient");
       console.log(`Received balance request for ${address}`);
       const mnemonic = process.env.SEED_PHRASE;
-      const api = await initialize("wss://kate.avail.tools/ws")
+      const url = process.env.WS_URL;
+      const api = await initialize(url)
       // const api = await createApi('local');
       const decimals = getDecimals(api)
       let { data: { free: currentFree } } = await api.query.system.account(address);
