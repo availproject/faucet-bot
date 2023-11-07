@@ -42,7 +42,7 @@ client.on(Events.InteractionCreate, async interaction => {
       console.log(`userId: ${userId} now: ${now}`);
 
       //10 minutes of cooldown
-      const cooldownAmount = 10 * 60 * 1000;
+      const cooldownAmount = 3 * 60 * 60 * 1000;
       if (!cooldowns.has(userId)) {
         cooldowns.set(userId, now)
       }
@@ -79,7 +79,7 @@ client.on(Events.InteractionCreate, async interaction => {
       // Update the user's token balance and perform the transfer
       // Add the deposited amount to the existing balance
 
-      const depositedAmount = 1; // Replace with the actual deposited amount
+      const depositedAmount = 11; // Replace with the actual deposited amount
       const existingDepositInfo = await db.collection('depositInfo').findOne({ userId });
       const { tokens, endDate } = existingDepositInfo;
 
