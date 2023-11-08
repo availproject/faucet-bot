@@ -52,7 +52,7 @@ commands.set('deposit', {
             console.log(`Transaction included at blockHash ${status.asFinalized}`);
             interaction.followUp({
               content: `Status: Complete
-            Amount:  1 AVL
+            Amount:  11 AVL
             Txn Hash: ${txHash}
             Block Hash: ${blockHash}
             🌐 ${hyperlink('View in explorer', link)}`
