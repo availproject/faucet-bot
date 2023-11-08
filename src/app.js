@@ -39,7 +39,13 @@ client.on(Events.InteractionCreate, async interaction => {
     if (interaction.commandName == 'deposit') {
       const userId = interaction.user.id;
       const now = Date.now();
-      console.log(`userId: ${userId} now: ${now}`);
+      let d = Date(Date.now());
+
+      // Converting the number of millisecond
+      // in date string
+      a = d.toString()
+
+      console.log(`userId: ${userId} now: ${d}`);
 
       //10 minutes of cooldown
       const cooldownAmount = 3 * 60 * 60 * 1000;
@@ -50,7 +56,7 @@ client.on(Events.InteractionCreate, async interaction => {
         const expirationTime = cooldowns.get(userId) + cooldownAmount;
 
         if (now < expirationTime) {
-          const timeLeft = Math.ceil(((expirationTime - now) / (1*60 *1000)));
+          const timeLeft = Math.ceil(((expirationTime - now) / (1 * 60 * 1000)));
           console.log(`timeLeft: ${timeLeft}`);
           return interaction.reply({ content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`, ephemeral: true });
         }
