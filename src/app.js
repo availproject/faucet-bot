@@ -6,17 +6,7 @@ import { commands } from './commands';
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const cooldowns = new Collection();
 const depositLimits = new Collection();
-
-import { MongoClient } from 'mongodb';
-
-const mongoUrl = 'mongodb://localhost:27017';
-// Database name
-const dbName = 'userdata';
-
-// Connect to the MongoDB database
-const dbclient = new MongoClient(mongoUrl);
-dbclient.connect();
-const db = dbclient.db(dbName);
+import { db, db2 } from './db'
 
 // ClientReady event fires once after successful Discord login
 client.once(Events.ClientReady, event => {
@@ -38,17 +28,18 @@ client.on(Events.InteractionCreate, async interaction => {
     // Run the command, passing along the interaction 
     if (interaction.commandName == 'deposit') {
       const userId = interaction.user.id;
+      const address = interaction.options.get("address", true).value;
       const now = Date.now();
       let d = Date(Date.now());
 
       // Converting the number of millisecond
       // in date string
-      a = d.toString()
+      let a = d.toString()
 
-      console.log(`userId: ${userId} now: ${d}`);
+      console.log(`userId: ${userId} now: ${a}`);
 
-      //10 minutes of cooldown
-      const cooldownAmount = 3 * 60 * 60 * 1000;
+      // 3 hours of cooldown
+      let cooldownAmount = 3 * 60 * 60 * 1000;
       if (!cooldowns.has(userId)) {
         cooldowns.set(userId, now)
       }
@@ -66,6 +57,27 @@ client.on(Events.InteractionCreate, async interaction => {
 
       // Check if the user has exceeded the deposit limit
       const depositInfo = await db.collection('depositInfo').findOne({ userId });
+      const usermapInfo = await db2.collection('userInfo').findOne({ userId });
+
+      if (usermapInfo) {
+        const { storedaddr, endDate } = usermapInfo;
+        if (address != storedaddr && Date.now() < endDate) {
+          console.log(`userId ${userId} has a different address ${address} than stored one ${storedaddr}`)
+          //update the timer to 30mins as penalty
+          cooldownAmount = 30 * 60 * 1000;
+          return interaction.reply({ content: `The address you provided doesn't match with the userId`, ephemeral: true });
+        }
+        if (Date.now() > endDate) {
+          console.log(`Address for the userId ${userId} has been updated to ${address} after 3 day period`)
+          await db2.collection('userInfo').updateOne({ userId }, { $set: { storedaddr: address } });
+          await db2.collection('userInfo').updateOne({ userId }, { $set: { endDate: Date.now() + (3 * 24 * 60 * 60 * 1000) } });
+
+        }
+      }
+      else {
+        const newuserInfo = { userId, storedaddr: address, endDate: Date.now() + (3 * 24 * 60 * 60 * 1000) }
+        await db2.collection('userInfo').insertOne(newuserInfo);
+      }
 
       if (depositInfo) {
         const { tokens, endDate } = depositInfo;
@@ -102,7 +114,7 @@ client.on(Events.InteractionCreate, async interaction => {
       if (totalTokens > 100) {
         const remainingTokens = 100 - tokens;
         const remainingDays = Math.ceil((endDate - Date.now()) / (24 * 60 * 60 * 1000));
-        return interaction.reply({ content: `You can deposit a maximum of ${remainingTokens} tokens. Please wait ${remainingDays} day(s) before depositing again.`, ephemeral: true });
+        return interaction.reply({ content: `You can deposit a maximum of 100 tokens. Please wait ${remainingDays} day(s) before depositing again.`, ephemeral: true });
       }
 
       // Update the user's deposit information and perform the transfer
@@ -160,6 +172,7 @@ client.on(Events.InteractionCreate, async interaction => {
     }
   }
 });
+
 
 // Log in to Discord
 client.login(process.env.DISCORD_TOKEN);
