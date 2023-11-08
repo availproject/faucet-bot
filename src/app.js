@@ -6,7 +6,7 @@ import { commands } from './commands';
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const cooldowns = new Collection();
 const depositLimits = new Collection();
-import { db, db2 } from './db'
+import { db, db2, db3 } from './db'
 
 // ClientReady event fires once after successful Discord login
 client.once(Events.ClientReady, event => {
@@ -58,13 +58,13 @@ client.on(Events.InteractionCreate, async interaction => {
       // Check if the user has exceeded the deposit limit
       const depositInfo = await db.collection('depositInfo').findOne({ userId });
       const usermapInfo = await db2.collection('userInfo').findOne({ userId });
+      const addressmapInfo = await db3.collection('addressInfo').findOne({ address });
 
       if (usermapInfo) {
         const { storedaddr, endDate } = usermapInfo;
         if (address != storedaddr && Date.now() < endDate) {
           console.log(`userId ${userId} has a different address ${address} than stored one ${storedaddr}`)
           //update the timer to 30mins as penalty
-          cooldownAmount = 30 * 60 * 1000;
           return interaction.reply({ content: `The address you provided doesn't match with the userId`, ephemeral: true });
         }
         if (Date.now() > endDate) {
@@ -77,6 +77,26 @@ client.on(Events.InteractionCreate, async interaction => {
       else {
         const newuserInfo = { userId, storedaddr: address, endDate: Date.now() + (3 * 24 * 60 * 60 * 1000) }
         await db2.collection('userInfo').insertOne(newuserInfo);
+      }
+
+      if (addressmapInfo) {
+        const { storedId, endDate } = addressmapInfo;
+        if (userId != storedId && Date.now() < endDate) {
+          console.log(`Address ${address} has a different address ${userId} than stored one ${storedId}`)
+          //update the timer to 30mins as penalty
+          cooldownAmount = 30 * 60 * 1000;
+          return interaction.reply({ content: `The address you provided doesn't match with the userId`, ephemeral: true });
+        }
+        if (Date.now() > endDate) {
+          console.log(`Address for the userId ${userId} has been updated to ${address} after 3 day period`)
+          await db3.collection('addressInfo').updateOne({ address }, { $set: { storedId: userId } });
+          await db3.collection('addressInfo').updateOne({ address }, { $set: { endDate: Date.now() + (3 * 24 * 60 * 60 * 1000) } });
+
+        }
+      }
+      else {
+        const newuserInfo = { address, storedId: userId, endDate: Date.now() + (3 * 24 * 60 * 60 * 1000) }
+        await db2.collection('addressInfo').insertOne(newuserInfo);
       }
 
       if (depositInfo) {

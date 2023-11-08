@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { Collection, SlashCommandBuilder, hyperlink } from 'discord.js';
 import { getDecimals, initialize, formatNumberToBalance, getKeyringFromSeed, isValidAddress } from "avail-js-sdk"
+import { db, db2, db3 } from './db'
 
 export const commands = new Collection();
 
@@ -95,9 +96,12 @@ commands.set('override-address', {
       return interaction.reply({ content: `You do not have the required role to use this command.`, ephemeral: true });
     }
     else {
-      await db.collection('depositInfo').updateOne({ userId }, { $set: { storedaddr: address, endDate: Date.now() } });
+      await db2.collection('userInfo').updateOne({ userId }, { $set: { storedaddr: address } });
+      await db2.collection('userInfo').updateOne({ userId }, { $set: { endDate: Date.now() + (3 * 24 * 60 * 60 * 1000) } });
+      await db3.collection('addressInfo').updateOne({ address }, { $set: { storedId: userId } });
+      await db3.collection('addressInfo').updateOne({ address }, { $set: { endDate: Date.now() + (3 * 24 * 60 * 60 * 1000) } });
       await interaction.reply({
-        content: `User address overriden by admin to ${new_address}`, ephemeral: true
+        content: `User address overriden by admin for user ${userId} to ${new_address}`, ephemeral: true
       });
     }
   }
