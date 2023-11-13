@@ -7,7 +7,7 @@ import {
   getKeyringFromSeed,
   isValidAddress,
 } from "avail-js-sdk";
-import { db, db2, db3 } from "./db";
+import { db, db2, db3, db4 } from "./db";
 
 export const commands = new Collection();
 
@@ -119,7 +119,7 @@ commands.set("override", {
         .collection("userInfo")
         .updateOne(
           { userId },
-          { $set: { endDate: Date.now() + 3 * 24 * 60 * 60 * 1000 } }
+          { $set: { endDate: Date.now() + 3 * 60 * 1000 } }
         );
       await db3
         .collection("addressInfo")
@@ -128,10 +128,69 @@ commands.set("override", {
         .collection("addressInfo")
         .updateOne(
           { address },
-          { $set: { endDate: Date.now() + 3 * 24 * 60 * 60 * 1000 } }
+          { $set: { endDate: Date.now() + 3 * 60 * 1000 } }
         );
       await interaction.reply({
         content: `User address overriden by admin for user ${userId} to ${address}`,
+        ephemeral: true,
+      });
+    }
+  },
+});
+
+commands.set("ban-user", {
+  data: new SlashCommandBuilder()
+    .setName("ban-user")
+    .setDescription("Deposits tokens into an account")
+    .addStringOption((option) =>
+      option
+        .setName("id")
+        .setDescription("The address to deposit into.")
+        .setRequired(true)
+    ),
+  execute: async (interaction) => {
+    const userId = interaction.options.get("id", true).value;
+    const userRoles = interaction.member.roles.cache; // Get the roles of the user
+    const bypassRole = "1085873829362016256";
+    const hasBypassRole = userRoles.has(bypassRole);
+    if (!hasBypassRole) {
+      console.log(`does not have the bypass role ${interaction.user.id}`);
+      return interaction.reply({
+        content: `You do not have the required role to use this command.`,
+        ephemeral: true,
+      });
+    } else {
+      await db4.collection("bannedmap").insertOne({ userId: userId });
+      await interaction.reply({
+        content: `User address banned by admin for user ${userId}`,
+        ephemeral: true,
+      });
+    }
+  },
+});
+
+commands.set("add-user", {
+  data: new SlashCommandBuilder()
+    .setName("add-user")
+    .setDescription("add user to faucet")
+    .addStringOption((option) =>
+      option.setName("id").setDescription("addId to faucet").setRequired(true)
+    ),
+  execute: async (interaction) => {
+    const userId = interaction.options.get("id", true).value;
+    const userRoles = interaction.member.roles.cache; // Get the roles of the user
+    const bypassRole = "1085873829362016256";
+    const hasBypassRole = userRoles.has(bypassRole);
+    if (!hasBypassRole) {
+      console.log(`does not have the bypass role ${interaction.user.id}`);
+      return interaction.reply({
+        content: `You do not have the required role to use this command.`,
+        ephemeral: true,
+      });
+    } else {
+      await db2.collection("bannedmap").deleteOne({ userId: userId });
+      await interaction.reply({
+        content: `UserId ${userId} added to the faucet by admin`,
         ephemeral: true,
       });
     }

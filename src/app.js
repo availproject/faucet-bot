@@ -1,12 +1,13 @@
 import "dotenv/config";
 import { Client, Events, GatewayIntentBits, Collection } from "discord.js";
 import { commands } from "./commands";
+import { isValidAddress } from "avail-js-sdk";
 
 // Discord.js Client
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const cooldowns = new Collection();
 const depositLimits = new Collection();
-import { db, db2, db3 } from "./db";
+import { db, db2, db3, db4 } from "./db";
 
 // ClientReady event fires once after successful Discord login
 client.once(Events.ClientReady, (event) => {
@@ -16,6 +17,16 @@ client.once(Events.ClientReady, (event) => {
 // InteractionCreate event fires when the user invokes a slash command
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
+
+  const userId = interaction.user.id;
+  const bannedMap = await db.collection("bannedmap").findOne({ userId });
+
+  if (bannedMap) {
+    return interaction.reply({
+      content: `You are banned from using the faucet. Please contact the team for further assistance`,
+      ephemeral: true,
+    });
+  }
 
   // Get the command definition for the invoked command
   const command = commands.get(interaction.commandName);
@@ -29,15 +40,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.commandName == "deposit") {
       const userId = interaction.user.id;
       const address = interaction.options.get("address", true).value;
-      const now = Date.now();
-      let d = Date(Date.now());
+      if (!isValidAddress(address)) throw new Error("Invalid Recipient");
+      const moment = new Date();
+      const now = moment.getTime();
 
-      // Converting the number of millisecond
-      // in date string
-      let a = d.toString();
-
-      console.log(`userId: ${userId} now: ${a}`);
-
+      console.log(`userId: ${userId} logged now: ${moment}`);
+      let endTime = now + 3 * 24 * 60 * 60 * 1000;
+      let addresstime = new Date(endTime);
+      console.log("testing time", addresstime);
       // 3 hours of cooldown
       let cooldownAmount = 3 * 60 * 60 * 1000;
       if (!cooldowns.has(userId)) {
@@ -47,7 +57,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         if (now < expirationTime) {
           const timeLeft = Math.ceil((expirationTime - now) / (1 * 60 * 1000));
-          console.log(`timeLeft: ${timeLeft}`);
+          console.log(`timeLeft: ${timeLeft} for user ${userId}`);
           return interaction.reply({
             content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
             ephemeral: true,
@@ -67,9 +77,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         .findOne({ address });
 
       if (addressmapInfo) {
-        console.log(addressmapInfo);
         const { storedId, endDate } = addressmapInfo;
-        if (userId != storedId && Date.now() < endDate) {
+        if (userId != storedId && now < endDate) {
           console.log(
             `Address ${address} has a different address ${userId} than stored one ${storedId}`
           );
@@ -78,25 +87,25 @@ client.on(Events.InteractionCreate, async (interaction) => {
             ephemeral: true,
           });
         }
-        if (Date.now() > endDate) {
+        if (now > endDate) {
           console.log(
             `Address for the userId ${userId} has been updated to ${address} after 3 day period`
+          );
+          console.log(
+            `updating address mapping to ID after 3 day timeout for userId ${userId} to the address ${address} till the date ${addresstime}`
           );
           await db3
             .collection("addressInfo")
             .updateOne({ address }, { $set: { storedId: userId } });
           await db3
             .collection("addressInfo")
-            .updateOne(
-              { address },
-              { $set: { endDate: Date.now() + 3 * 24 * 60 * 60 * 1000 } }
-            );
+            .updateOne({ address }, { $set: { endDate: endTime } });
         }
       } else {
         if (usermapInfo) {
           const { storedaddr, endDate } = usermapInfo;
           console.log(storedaddr);
-          if (address != storedaddr && Date.now() < endDate) {
+          if (address != storedaddr && now < endDate) {
             console.log(
               `userId ${userId} has a different address ${address} than stored one ${storedaddr}`
             );
@@ -109,14 +118,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const newuserInfo = {
           address,
           storedId: userId,
-          endDate: Date.now() + 3 * 24 * 60 * 60 * 1000,
+          endDate: endTime,
         };
+        console.log(
+          `address mapping to ID for userId ${userId} to the address ${address} till the date ${addresstime}`
+        );
         await db3.collection("addressInfo").insertOne(newuserInfo);
       }
 
       if (usermapInfo) {
         const { storedaddr, endDate } = usermapInfo;
-        if (address != storedaddr && Date.now() < endDate) {
+        if (address != storedaddr && now < endDate) {
           console.log(
             `userId ${userId} has a different address ${address} than stored one ${storedaddr}`
           );
@@ -126,26 +138,26 @@ client.on(Events.InteractionCreate, async (interaction) => {
             ephemeral: true,
           });
         }
-        if (Date.now() > endDate) {
+        if (now > endDate) {
           console.log(
-            `Address for the userId ${userId} has been updated to ${address} after 3 day period`
+            `updating User mapping to address after 3 day timeout for userId ${userId} to the address ${address} till the date ${addresstime}`
           );
           await db2
             .collection("userInfo")
             .updateOne({ userId }, { $set: { storedaddr: address } });
           await db2
             .collection("userInfo")
-            .updateOne(
-              { userId },
-              { $set: { endDate: Date.now() + 3 * 24 * 60 * 60 * 1000 } }
-            );
+            .updateOne({ userId }, { $set: { endDate: endTime } });
         }
       } else {
         const newuserInfo = {
           userId,
           storedaddr: address,
-          endDate: Date.now() + 3 * 24 * 60 * 60 * 1000,
+          endDate: endTime,
         };
+        console.log(
+          `User mapping to address for userId ${userId} to the address ${address} till the date ${addresstime}`
+        );
         await db2.collection("userInfo").insertOne(newuserInfo);
       }
 
