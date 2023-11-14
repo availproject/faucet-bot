@@ -188,7 +188,7 @@ commands.set("add-user", {
         ephemeral: true,
       });
     } else {
-      await db2.collection("bannedmap").deleteOne({ userId: userId });
+      await db4.collection("bannedmap").deleteOne({ userId: userId });
       await interaction.reply({
         content: `UserId ${userId} added to the faucet by admin`,
         ephemeral: true,
