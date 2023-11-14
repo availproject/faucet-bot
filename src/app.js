@@ -75,6 +75,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const addressmapInfo = await db3
         .collection("addressInfo")
         .findOne({ address });
+      const bannedInfo = await db3.collection("bannedInfo").findOne({ userId });
+      if (bannedInfo){
+        console.log(`user ${userId} banned is attempting to use faucet`)
+        return interaction.reply({
+          content: `You are banned from using the faucet, contact the team for assistance`,
+          ephemeral: true,
+        });
+      }
 
       if (addressmapInfo) {
         const { storedId, endDate } = addressmapInfo;
