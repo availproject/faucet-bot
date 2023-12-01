@@ -40,7 +40,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.commandName == "deposit") {
       const userId = interaction.user.id;
       const address = interaction.options.get("address", true).value;
-      if (!isValidAddress(address)) throw new Error("Invalid Recipient");
+      const userRoles = interaction.member.roles.cache; // Get the roles of the user
+      const bypassRole = "1174943621875761153";
+      const hasBypassRole = true;
+      if (!hasBypassRole) {
+        console.log(`no access to faucet ${interaction.user.id}`);
+        return interaction.reply({
+          content: `You do not have the required role to use this command.`,
+          ephemeral: true,
+        });
+      }
+      if (!isValidAddress(address)) {
+        return interaction.reply({
+          content: `Not valid Address used. Please check your request again`,
+          ephemeral: true,
+        });
+      }
       const moment = new Date();
       const now = moment.getTime();
 
