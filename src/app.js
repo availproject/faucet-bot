@@ -64,23 +64,23 @@ client.on(Events.InteractionCreate, async (interaction) => {
       let addresstime = new Date(endTime);
       console.log("testing time", addresstime);
       // 3 hours of cooldown
-      // let cooldownAmount = 3 * 60 * 60 * 1000;
-      // if (!cooldowns.has(userId)) {
-      //   cooldowns.set(userId, now);
-      // } else {
-      //   const expirationTime = cooldowns.get(userId) + cooldownAmount;
+      let cooldownAmount = 3 * 60 * 60 * 1000;
+      if (!cooldowns.has(userId)) {
+        cooldowns.set(userId, now);
+      } else {
+        const expirationTime = cooldowns.get(userId) + cooldownAmount;
 
-      //   if (now < expirationTime) {
-      //     const timeLeft = Math.ceil((expirationTime - now) / (1 * 60 * 1000));
-      //     console.log(`timeLeft: ${timeLeft} for user ${userId}`);
-      //     return interaction.reply({
-      //       content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
-      //       ephemeral: true,
-      //     });
-      //   }
+        if (now < expirationTime) {
+          const timeLeft = Math.ceil((expirationTime - now) / (1 * 60 * 1000));
+          console.log(`timeLeft: ${timeLeft} for user ${userId}`);
+          return interaction.reply({
+            content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
+            ephemeral: true,
+          });
+        }
 
-      //   cooldowns.set(userId, now);
-      // }
+        cooldowns.set(userId, now);
+      }
 
       // Check if the user has exceeded the deposit limit
       const depositInfo = await db
