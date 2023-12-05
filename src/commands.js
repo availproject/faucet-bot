@@ -67,13 +67,12 @@ commands.set("deposit", {
         index = tokenIndex;
         dest_value = dispence_array[tokenIndex];
       } else {
-        dest = dispence_array[0];
+        dest_value = dispence_array[0];
         // await db5
         //   .collection("tokenInfo")
         //   .updateOne({ userId }, { $set: { tokenIndex: 0 } });
       }
 
-      console.log(`dest value ${dest_value}`);
       const amount = formatNumberToBalance(dest_value, decimals);
       await api.tx.balances
         .transfer(dest, amount)
@@ -82,14 +81,14 @@ commands.set("deposit", {
           if (status.isFinalized) {
             const blockHash = status.asFinalized;
             const link = http_url + "#/explorer/query/" + blockHash;
-            console.log(`transferred 11 AVL to ${dest}`);
+            console.log(`transferred ${dest_value} AVL to ${dest}`);
             console.log(`Transaction hash ${txHash.toHex()}`);
             console.log(
               `Transaction included at blockHash ${status.asFinalized}`
             );
             interaction.followUp({
               content: `Status: Complete
-            Amount:  11 AVL
+            Amount:  ${dest_value} AVL
             Txn Hash: ${txHash}
             Block Hash: ${blockHash}
             🌐 ${hyperlink("View in explorer", link)}`,

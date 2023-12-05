@@ -188,6 +188,27 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await db2.collection("userInfo").insertOne(newuserInfo);
       }
 
+      if (tokenmapInfo) {
+        const { tokenIndex, endDate } = tokenmapInfo;
+        if (Date.now() < endDate) {
+          if (tokenIndex > dispence_array.length - 1) {
+            await db5
+              .collection("tokenInfo")
+              .updateOne({ userId }, { $set: { tokenIndex: 3 } });
+          }
+        } else {
+          await db5
+            .collection("tokenInfo")
+            .updateOne({ userId }, { $set: { tokenIndex: 0 } });
+          await db5
+            .collection("tokenInfo")
+            .updateOne(
+              { userId },
+              { $set: { endDate: Date.now() + 7 * 24 * 60 * 60 * 1000 } }
+            );
+        }
+      }
+
       if (!tokenmapInfo) {
         const newtokenInfo = {
           userId,
@@ -228,7 +249,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         .findOne({ userId });
       const { tokenIndex } = existTokenInfo;
       const depositedAmount = dispence_array[tokenIndex];
-      console.log(`value in appjs ${depositedAmount}`);
       const existingDepositInfo = await db
         .collection("depositInfo")
         .findOne({ userId });
