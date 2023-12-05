@@ -7,7 +7,7 @@ import { isValidAddress } from "avail-js-sdk";
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const cooldowns = new Collection();
 const depositLimits = new Collection();
-import { db, db2, db3, db4 } from "./db";
+import { db, db2, db3, db4, db5, dispence_array } from "./db";
 
 // ClientReady event fires once after successful Discord login
 client.once(Events.ClientReady, (event) => {
@@ -64,23 +64,23 @@ client.on(Events.InteractionCreate, async (interaction) => {
       let addresstime = new Date(endTime);
       console.log("testing time", addresstime);
       // 3 hours of cooldown
-      let cooldownAmount = 3 * 60 * 60 * 1000;
-      if (!cooldowns.has(userId)) {
-        cooldowns.set(userId, now);
-      } else {
-        const expirationTime = cooldowns.get(userId) + cooldownAmount;
+      // let cooldownAmount = 3 * 60 * 60 * 1000;
+      // if (!cooldowns.has(userId)) {
+      //   cooldowns.set(userId, now);
+      // } else {
+      //   const expirationTime = cooldowns.get(userId) + cooldownAmount;
 
-        if (now < expirationTime) {
-          const timeLeft = Math.ceil((expirationTime - now) / (1 * 60 * 1000));
-          console.log(`timeLeft: ${timeLeft} for user ${userId}`);
-          return interaction.reply({
-            content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
-            ephemeral: true,
-          });
-        }
+      //   if (now < expirationTime) {
+      //     const timeLeft = Math.ceil((expirationTime - now) / (1 * 60 * 1000));
+      //     console.log(`timeLeft: ${timeLeft} for user ${userId}`);
+      //     return interaction.reply({
+      //       content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
+      //       ephemeral: true,
+      //     });
+      //   }
 
-        cooldowns.set(userId, now);
-      }
+      //   cooldowns.set(userId, now);
+      // }
 
       // Check if the user has exceeded the deposit limit
       const depositInfo = await db
@@ -90,6 +90,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const addressmapInfo = await db3
         .collection("addressInfo")
         .findOne({ address });
+
+      const tokenmapInfo = await db5
+        .collection("tokenInfo")
+        .findOne({ userId });
       const bannedInfo = await db4.collection("bannedInfo").findOne({ userId });
       if (bannedInfo) {
         console.log(`user ${userId} banned is attempting to use faucet`);
@@ -184,6 +188,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await db2.collection("userInfo").insertOne(newuserInfo);
       }
 
+      if (!tokenmapInfo) {
+        const newtokenInfo = {
+          userId,
+          tokenIndex: 0,
+          endDate: Date.now() + 7 * 24 * 60 * 60 * 1000,
+        };
+        await db5.collection("tokenInfo").insertOne(newtokenInfo);
+      }
+
       if (depositInfo) {
         const { tokens, endDate } = depositInfo;
         console.log(`tokens: ${tokens} endDate: ${endDate} now: ${now}`);
@@ -210,8 +223,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
       // Proceed with the deposit logic here
       // Update the user's token balance and perform the transfer
       // Add the deposited amount to the existing balance
-
-      const depositedAmount = 11; // Replace with the actual deposited amount
+      const existTokenInfo = await db5
+        .collection("tokenInfo")
+        .findOne({ userId });
+      const { tokenIndex } = existTokenInfo;
+      const depositedAmount = dispence_array[tokenIndex];
+      console.log(`value in appjs ${depositedAmount}`);
       const existingDepositInfo = await db
         .collection("depositInfo")
         .findOne({ userId });

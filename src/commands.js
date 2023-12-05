@@ -7,7 +7,7 @@ import {
   getKeyringFromSeed,
   isValidAddress,
 } from "avail-js-sdk";
-import { db, db2, db3, db4 } from "./db";
+import { db, db2, db3, db4, db5, dispence_array } from "./db";
 
 export const commands = new Collection();
 
@@ -37,8 +37,16 @@ commands.set("deposit", {
 
     try {
       // Submit the transfer transaction
+      let dest_value = 0;
+      let index = 0;
+      const userId = interaction.user.id;
       const dest = interaction.options.get("address", true).value;
-      if (!isValidAddress(dest)) throw new Error("Invalid Recipient");
+      if (!isValidAddress(dest)) {
+        return interaction.reply({
+          content: `Not valid Address used. Please check your request again`,
+          ephemeral: true,
+        });
+      }
       console.log(`Received deposit request for ${dest}`);
       const mnemonic = process.env.SEED_PHRASE;
       const ws_url = process.env.WS_URL;
@@ -48,7 +56,25 @@ commands.set("deposit", {
       const keyring = getKeyringFromSeed(mnemonic);
       const options = { app_id: 0, nonce: -1 };
       const decimals = getDecimals(api);
-      const amount = formatNumberToBalance(11, decimals);
+      const tokenmapInfo = await db5
+        .collection("tokenInfo")
+        .findOne({ userId });
+      if (tokenmapInfo) {
+        let { tokenIndex } = tokenmapInfo;
+        if (tokenIndex > dispence_array.length - 1) {
+          tokenIndex = 3;
+        }
+        index = tokenIndex;
+        dest_value = dispence_array[tokenIndex];
+      } else {
+        dest = dispence_array[0];
+        // await db5
+        //   .collection("tokenInfo")
+        //   .updateOne({ userId }, { $set: { tokenIndex: 0 } });
+      }
+
+      console.log(`dest value ${dest_value}`);
+      const amount = formatNumberToBalance(dest_value, decimals);
       await api.tx.balances
         .transfer(dest, amount)
         .signAndSend(keyring, options, ({ status, txHash }) => {
@@ -70,6 +96,10 @@ commands.set("deposit", {
             });
           }
         });
+
+      await db5
+        .collection("tokenInfo")
+        .updateOne({ userId }, { $set: { tokenIndex: index + 1 } });
     } catch (error) {
       console.error(error);
       interaction.followUp({
