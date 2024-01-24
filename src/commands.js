@@ -108,7 +108,7 @@ commands.set("deposit", {
     }
 
     // Let the user know it's pending
-    interaction.followUp({ content: "Status: Pending", ephemeral: true });
+    interaction.followUp({ content: "Status: Sending", ephemeral: true });
   },
 });
 

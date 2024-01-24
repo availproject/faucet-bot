@@ -1546,10 +1546,10 @@ arraybuffer.prototype.slice@^1.0.2:
     is-array-buffer "^3.0.2"
     is-shared-array-buffer "^1.0.2"
 
-avail-js-sdk@^0.1.2:
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/avail-js-sdk/-/avail-js-sdk-0.1.2.tgz#a3a6c2eb7210328b82131053aac44caf4745147a"
-  integrity sha512-qHxk4NucHFbwBeC+Ni4VBLurxEWdx7aq9ymx8yJdmPfHyX4t0lAiZGLkjpHjdKcUd8DQVGyxRY1yRajsz9cMeQ==
+avail-js-sdk@^0.1.15:
+  version "0.1.15"
+  resolved "https://registry.yarnpkg.com/avail-js-sdk/-/avail-js-sdk-0.1.15.tgz#298a3c48ecb7c10ec9eeee5251d1a76932d32c34"
+  integrity sha512-tCTINqEA232VZ/nQCqqcR/gOP68YSzqcYoPDIrlqkgK+H4Cz3Hl6QPTrTzf5RWgs/UEMG5eYH9XQ00zmdDUpvA==
   dependencies:
     "@polkadot/api" "^10.10.1"
 
