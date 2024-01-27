@@ -1,0 +1,11 @@
+{
+  "jsc": {
+    // ... other settings ...
+    "transform": {
+      "react": {
+        "pragma": "React.createElement",
+        "pragmaFrag": "React.Fragment"
+      }
+    }
+  }
+}
