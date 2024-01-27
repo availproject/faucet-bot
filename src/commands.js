@@ -38,12 +38,8 @@ commands.set('deposit', {
             const blockHash = result.status.asInBlock;
             const link = 'https://testnet.avail.tools/#/explorer/query/' + blockHash;
             interaction.followUp({
-              content: `Status: Complete
-            Amount:  1 AVL
-            Txn Hash: ${result.txHash}
-            Block Hash: ${blockHash}
-            🌐 ${hyperlink('View in explorer', link)}`
-            });
+              content: `Status: Complete\nAmount:  1 AVL\nTxn Hash: ${result.txHash}\nBlock Hash: ${blockHash}\n🌐 ${hyperlink('View in explorer', link)}`
+            });            
           }
         }
       });
