@@ -36,6 +36,8 @@ commands.set("deposit", {
     await interaction.deferReply({ ephemeral: true });
 
     try {
+      // Let the user know it's pending
+      interaction.followUp({ content: "Status: Sending", ephemeral: true });
       // Submit the transfer transaction
       let dest_value = 0;
       let index = 0;
@@ -106,9 +108,6 @@ commands.set("deposit", {
         ephemeral: true,
       });
     }
-
-    // Let the user know it's pending
-    interaction.followUp({ content: "Status: Sending", ephemeral: true });
   },
 });
 
@@ -128,6 +127,8 @@ commands.set("deposit-rollup", {
 
     try {
       // Submit the transfer transaction
+      // Let the user know it's pending
+      interaction.followUp({ content: "Status: Sending", ephemeral: true });
       const userId = interaction.user.id;
       const dest = interaction.options.get("address", true).value;
       if (!isValidAddress(dest)) {
@@ -194,9 +195,6 @@ commands.set("deposit-rollup", {
         ephemeral: true,
       });
     }
-
-    // Let the user know it's pending
-    interaction.followUp({ content: "Status: Sending", ephemeral: true });
   },
 });
 

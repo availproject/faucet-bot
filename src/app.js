@@ -62,24 +62,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       console.log(`userId: ${userId} logged now: ${moment}`);
       let endTime = now + 3 * 24 * 60 * 60 * 1000;
       let addresstime = new Date(endTime);
-      // 3 hours of cooldown
-      let cooldownAmount = 3 * 60 * 60 * 1000;
-      if (!cooldowns.has(userId)) {
-        cooldowns.set(userId, now);
-      } else {
-        const expirationTime = cooldowns.get(userId) + cooldownAmount;
-
-        if (now < expirationTime) {
-          const timeLeft = Math.ceil((expirationTime - now) / (1 * 60 * 1000));
-          console.log(`timeLeft: ${timeLeft} for user ${userId}`);
-          return interaction.reply({
-            content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
-            ephemeral: true,
-          });
-        }
-
-        cooldowns.set(userId, now);
-      }
 
       // Check if the user has exceeded the deposit limit
       const depositInfo = await db
@@ -283,13 +265,32 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await db
         .collection("depositInfo")
         .updateOne({ userId }, { $set: { tokens: totalTokens } });
+
+      //3 hours of cooldown
+      let cooldownAmount = 3 * 60 * 60 * 1000;
+      if (!cooldowns.has(userId)) {
+        cooldowns.set(userId, now);
+      } else {
+        const expirationTime = cooldowns.get(userId) + cooldownAmount;
+
+        if (now < expirationTime) {
+          const timeLeft = Math.ceil((expirationTime - now) / (1 * 60 * 1000));
+          console.log(`timeLeft: ${timeLeft} for user ${userId}`);
+          return interaction.reply({
+            content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
+            ephemeral: true,
+          });
+        }
+
+        cooldowns.set(userId, now);
+      }
     }
 
     if (interaction.commandName == "deposit-rollup") {
       const userId = interaction.user.id;
       const address = interaction.options.get("address", true).value;
       const userRoles = interaction.member.roles.cache; // Get the roles of the user
-      const hasRole = userRoles.has("1199710866501799938");
+      const hasRole = userRoles.has("1199836359288967168");
       if (!hasRole) {
         console.log(`no access to faucet ${interaction.user.id}`);
         return interaction.reply({
@@ -307,33 +308,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const now = moment.getTime();
       console.log(`rollup user: ${userId} logged now: ${moment}`);
       let endTime = now + 3 * 24 * 60 * 60 * 1000;
-      let cooldownTime = 60 * 60 * 1000;
       let addresstime = new Date(endTime);
-      if (!rollupUserCd.has(userId)) {
-        rollupUserCd.set(userId, now);
-      } else {
-        const expirationTime = rollupUserCd.get(userId) + cooldownTime;
-        if (now < expirationTime) {
-          const timeLeft = Math.ceil((expirationTime - now) / (1 * 60 * 1000));
-          console.log(`timeLeft: ${timeLeft} for user ${userId}`);
-          return interaction.reply({
-            content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
-            ephemeral: true,
-          });
-        }
-        rollupUserCd.set(userId, now);
-      }
       const WeeklydepositInfo = await db
         .collection("WeeklyRollupdepositInfo")
         .findOne({ userId });
       const DailydepositInfo = await db
         .collection("DailyRollupdepositInfo")
         .findOne({ userId });
-      const usermapInfo = await db2
-        .collection("RollupuserInfo")
-        .findOne({ userId });
+      const usermapInfo = await db2.collection("userInfo").findOne({ userId });
       const addressmapInfo = await db3
-        .collection("RollupaddressInfo")
+        .collection("addressInfo")
         .findOne({ address });
 
       if (addressmapInfo) {
@@ -355,10 +339,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
             `updating address mapping to ID after 3 day timeout for userId ${userId} to the address ${address} till the date ${addresstime}`
           );
           await db3
-            .collection("RollupaddressInfo")
+            .collection("addressInfo")
             .updateOne({ address }, { $set: { storedId: userId } });
           await db3
-            .collection("RollupaddressInfo")
+            .collection("addressInfo")
             .updateOne({ address }, { $set: { endDate: endTime } });
         }
       } else {
@@ -383,7 +367,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         console.log(
           `address mapping to ID for userId ${userId} to the address ${address} till the date ${addresstime}`
         );
-        await db3.collection("RollupaddressInfo").insertOne(newuserInfo);
+        await db3.collection("addressInfo").insertOne(newuserInfo);
       }
 
       if (usermapInfo) {
@@ -403,10 +387,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
             `updating User mapping to address after 3 day timeout for userId ${userId} to the address ${address} till the date ${addresstime}`
           );
           await db2
-            .collection("RollupuserInfo")
+            .collection("userInfo")
             .updateOne({ userId }, { $set: { storedaddr: address } });
           await db2
-            .collection("RollupuserInfo")
+            .collection("userInfo")
             .updateOne({ userId }, { $set: { endDate: endTime } });
         }
       } else {
@@ -418,7 +402,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         console.log(
           `User mapping to address for userId ${userId} to the address ${address} till the date ${addresstime}`
         );
-        await db2.collection("RollupuserInfo").insertOne(newuserInfo);
+        await db2.collection("userInfo").insertOne(newuserInfo);
       }
 
       if (WeeklydepositInfo) {
@@ -484,6 +468,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
           endDate: endDate,
         };
         await db.collection("DailyRollupdepositInfo").insertOne(newDepositInfo);
+      }
+
+      let cooldownTime = 60 * 60 * 1000;
+      if (!rollupUserCd.has(userId)) {
+        rollupUserCd.set(userId, now);
+      } else {
+        const expirationTime = rollupUserCd.get(userId) + cooldownTime;
+        if (now < expirationTime) {
+          const timeLeft = Math.ceil((expirationTime - now) / (1 * 60 * 1000));
+          console.log(`timeLeft: ${timeLeft} for user ${userId}`);
+          return interaction.reply({
+            content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
+            ephemeral: true,
+          });
+        }
+        rollupUserCd.set(userId, now);
       }
       // const depositedAmount = 5;
       // const existingDepositInfo = await db
