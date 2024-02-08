@@ -8,7 +8,7 @@ import {
   isValidAddress,
 } from "avail-js-sdk";
 import { db, db2, db3, db4, db5, dispence_array } from "./db.js";
-
+import { getApiInstance, disconnectApi } from "./api.js";
 export const commands = new Collection();
 
 commands.set("ping", {
@@ -53,8 +53,9 @@ commands.set("deposit", {
       const mnemonic = process.env.SEED_PHRASE;
       const ws_url = process.env.WS_URL;
       const http_url = process.env.HTTP_URL;
-      const api = await initialize(ws_url);
+      // const api = await initialize(ws_url);
       // const api = await createApi('local');
+      let api = await getApiInstance();
       const keyring = getKeyringFromSeed(mnemonic);
       const options = { app_id: 0, nonce: -1 };
       const decimals = getDecimals(api);
@@ -97,7 +98,7 @@ commands.set("deposit", {
             });
           }
         });
-
+      // disconnectApi(api);
       await db5
         .collection("tokenInfo")
         .updateOne({ userId }, { $set: { tokenIndex: index + 1 } });
