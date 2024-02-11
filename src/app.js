@@ -282,24 +282,24 @@ client.on(Events.InteractionCreate, async (interaction) => {
         .collection("depositInfo")
         .updateOne({ userId }, { $set: { tokens: totalTokens } });
 
-      //3 hours of cooldown
-      // let cooldownAmount = 3 * 60 * 60 * 1000;
-      // if (!cooldowns.has(userId)) {
-      //   cooldowns.set(userId, now);
-      // } else {
-      //   const expirationTime = cooldowns.get(userId) + cooldownAmount;
+      // 3 hours of cooldown
+      let cooldownAmount = 3 * 60 * 60 * 1000;
+      if (!cooldowns.has(userId)) {
+        cooldowns.set(userId, now);
+      } else {
+        const expirationTime = cooldowns.get(userId) + cooldownAmount;
 
-      //   if (now < expirationTime) {
-      //     const timeLeft = Math.ceil((expirationTime - now) / (1 * 60 * 1000));
-      //     console.log(`timeLeft: ${timeLeft} for user ${userId}`);
-      //     return interaction.reply({
-      //       content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
-      //       ephemeral: true,
-      //     });
-      //   }
+        if (now < expirationTime) {
+          const timeLeft = Math.ceil((expirationTime - now) / (1 * 60 * 1000));
+          console.log(`timeLeft: ${timeLeft} for user ${userId}`);
+          return interaction.reply({
+            content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
+            ephemeral: true,
+          });
+        }
 
-      //   cooldowns.set(userId, now);
-      // }
+        cooldowns.set(userId, now);
+      }
     }
 
     if (interaction.commandName == "deposit-rollup") {
@@ -486,21 +486,21 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await db.collection("DailyRollupdepositInfo").insertOne(newDepositInfo);
       }
 
-      // let cooldownTime = 60 * 60 * 1000;
-      // if (!rollupUserCd.has(userId)) {
-      //   rollupUserCd.set(userId, now);
-      // } else {
-      //   const expirationTime = rollupUserCd.get(userId) + cooldownTime;
-      //   if (now < expirationTime) {
-      //     const timeLeft = Math.ceil((expirationTime - now) / (1 * 60 * 1000));
-      //     console.log(`timeLeft: ${timeLeft} for user ${userId}`);
-      //     return interaction.reply({
-      //       content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
-      //       ephemeral: true,
-      //     });
-      //   }
-      //   rollupUserCd.set(userId, now);
-      // }
+      let cooldownTime = 60 * 60 * 1000;
+      if (!rollupUserCd.has(userId)) {
+        rollupUserCd.set(userId, now);
+      } else {
+        const expirationTime = rollupUserCd.get(userId) + cooldownTime;
+        if (now < expirationTime) {
+          const timeLeft = Math.ceil((expirationTime - now) / (1 * 60 * 1000));
+          console.log(`timeLeft: ${timeLeft} for user ${userId}`);
+          return interaction.reply({
+            content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
+            ephemeral: true,
+          });
+        }
+        rollupUserCd.set(userId, now);
+      }
       // const depositedAmount = 5;
       // const existingDepositInfo = await db
       //   .collection("RollupdepositInfo")
