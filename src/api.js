@@ -49,7 +49,7 @@ export const disconnectApi = async () => {
   }
 };
 
-export const transferAccount = async (to, amount) => {
+export const transferAccount = async (to, amount, mnemonic) => {
   return new Promise(async (resolve, reject) => {
     try {
       if (!isValidAddress(to)) {
@@ -64,8 +64,7 @@ export const transferAccount = async (to, amount) => {
       const nonce1 = (await api.rpc.system.accountNextIndex(from)).toNumber();
       console.log(nonce1);
       console.log(nonce.toNumber());
-      const mnemonic = process.env.SEED_PHRASE;
-      const options = { app_id: 0, nonce: nonce1 };
+      const options = { app_id: 0, nonce: -1 };
       const keyring = getKeyringFromSeed(mnemonic);
       const transfer = api.tx.balances.transfer(to, value);
       let blockHash = null;
