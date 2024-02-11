@@ -306,7 +306,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const userId = interaction.user.id;
       const address = interaction.options.get("address", true).value;
       const userRoles = interaction.member.roles.cache; // Get the roles of the user
-      const hasRole = userRoles.has("1199836359288967168");
+      const hasRole = userRoles.has("1199710866501799938");
       if (!hasRole) {
         console.log(`no access to faucet ${interaction.user.id}`);
         return interaction.reply({
