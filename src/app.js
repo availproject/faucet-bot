@@ -57,8 +57,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const userId = interaction.user.id;
       const address = interaction.options.get("address", true).value;
       const userRoles = interaction.member.roles.cache; // Get the roles of the user
-      const bypassRole = "1174943621875761153";
-      const hasBypassRole = true;
+      const bypassRole = "1187011468508540960";
+      const hasBypassRole = userRoles.has(bypassRole);
       if (!hasBypassRole) {
         console.log(`no access to faucet ${interaction.user.id}`);
         return interaction.reply({
