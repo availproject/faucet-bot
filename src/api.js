@@ -7,6 +7,8 @@ import {
   formatNumberToBalance,
 } from "avail-js-sdk";
 import "@polkadot/api-augment";
+import BN from "bn.js";
+import axios, { AxiosResponse } from "axios";
 
 let apiInstance = null;
 
@@ -49,6 +51,13 @@ export const disconnectApi = async () => {
   }
 };
 
+function toUnit(balance) {
+  let decimals = 18;
+  let base = new BN(10).pow(new BN(decimals));
+  let dm = new BN(balance).divmod(base);
+  return parseFloat(dm.div.toString() + "." + dm.mod.toString());
+}
+
 export const transferAccount = async (to, amount, mnemonic) => {
   return new Promise(async (resolve, reject) => {
     try {
@@ -60,12 +69,16 @@ export const transferAccount = async (to, amount, mnemonic) => {
       const decimals = getDecimals(api);
       const value = formatNumberToBalance(amount, decimals);
       const from = "5D5L2sbWNMGPzTrR58GbWuiV8gVkhHqR7815zmyqPynWVP7J";
-      const { nonce } = await api.query.system.account(from);
-      const nonce1 = (await api.rpc.system.accountNextIndex(from)).toNumber();
-      console.log(nonce1);
-      console.log(nonce.toNumber());
       const options = { app_id: 0, nonce: -1 };
       const keyring = getKeyringFromSeed(mnemonic);
+      let from_Add = keyring.address;
+      const { data: balance } = await api.query.system.account(from_Add);
+      let free_bal = toUnit(balance.free);
+      console.log(free_bal);
+      if (free_bal < 5000) {
+        console.log(`balance is low ${free_bal}`);
+        sendAlert(`Balance is getting low ${free_bal}`);
+      }
       const transfer = api.tx.balances.transfer(to, value);
       let blockHash = null;
       const hash = await transfer.signAndSend(
@@ -75,7 +88,7 @@ export const transferAccount = async (to, amount, mnemonic) => {
           console.log(`Transaction status: ${status.type}`);
           if (status.isFinalized) {
             blockHash = status.asFinalized;
-            console.log(`transferred ${value} AVL to ${to}`);
+            console.log(`transferred ${amount} AVL to ${to}`);
             console.log(`Transaction hash ${txHash.toHex()}`);
             console.log(
               `Transaction included at blockHash ${status.asFinalized}`
@@ -92,3 +105,24 @@ export const transferAccount = async (to, amount, mnemonic) => {
     }
   });
 };
+
+function sendAlert(message) {
+  const url = process.env.SLACK_TOKEN;
+  const data = {
+    text: "*Faucet Alert ⚠️❌*: " + message,
+  };
+  axios
+    .post(url, data, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+    .then((response) => {
+      console.log();
+      "Response:" + JSON.stringify(response.data);
+    })
+    .catch((error) => {
+      console.log();
+      "Error in sending slack alert:", { error };
+    });
+}

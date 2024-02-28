@@ -148,128 +148,130 @@ commands.set("deposit", {
     }
   },
 });
+const override_user = false;
+if (override_user) {
+  commands.set("deposit-rollup", {
+    data: new SlashCommandBuilder()
+      .setName("deposit-rollup")
+      .setDescription("Deposits tokens into an rollup account")
+      .addStringOption((option) =>
+        option
+          .setName("address")
+          .setDescription("The address to deposit into.")
+          .setRequired(true)
+      ),
+    execute: async (interaction) => {
+      // Ack the request and give ourselves more time
+      await interaction.deferReply({ ephemeral: true });
 
-commands.set("deposit-rollup", {
-  data: new SlashCommandBuilder()
-    .setName("deposit-rollup")
-    .setDescription("Deposits tokens into an rollup account")
-    .addStringOption((option) =>
-      option
-        .setName("address")
-        .setDescription("The address to deposit into.")
-        .setRequired(true)
-    ),
-  execute: async (interaction) => {
-    // Ack the request and give ourselves more time
-    await interaction.deferReply({ ephemeral: true });
-
-    try {
-      // Submit the transfer transaction
-      // Let the user know it's pending
-      interaction.followUp({ content: "Status: Sending", ephemeral: true });
-      const userId = interaction.user.id;
-      const dest = interaction.options.get("address", true).value;
-      if (!isValidAddress(dest)) {
-        return interaction.reply({
-          content: `Not valid Address used. Please check your request again`,
-          ephemeral: true,
-        });
-      }
-      console.log(`Received deposit request for ${dest}`);
-      const mnemonic = process.env.ROLLUP_SEED_PHRASE;
-      const ws_url = process.env.WS_URL;
-      const http_url = process.env.HTTP_URL;
-      const api = await initialize(ws_url);
-      // const api = await createApi('local');
-      // const keyring = getKeyringFromSeed(mnemonic);
-      // const options = { app_id: 0, nonce: -1 };
-      // const decimals = getDecimals(api);
-      const dest_value = 5;
-
-      // const amount = formatNumberToBalance(dest_value, decimals);
       try {
+        // Submit the transfer transaction
+        // Let the user know it's pending
+        interaction.followUp({ content: "Status: Sending", ephemeral: true });
+        const userId = interaction.user.id;
+        const dest = interaction.options.get("address", true).value;
+        if (!isValidAddress(dest)) {
+          return interaction.reply({
+            content: `Not valid Address used. Please check your request again`,
+            ephemeral: true,
+          });
+        }
+        console.log(`Received deposit request for ${dest}`);
+        const mnemonic = process.env.ROLLUP_SEED_PHRASE;
+        const ws_url = process.env.WS_URL;
+        const http_url = process.env.HTTP_URL;
+        const api = await initialize(ws_url);
+        // const api = await createApi('local');
+        // const keyring = getKeyringFromSeed(mnemonic);
+        // const options = { app_id: 0, nonce: -1 };
+        // const decimals = getDecimals(api);
+        const dest_value = 5;
+
         // const amount = formatNumberToBalance(dest_value, decimals);
-        let hash = await transferAccount(dest, dest_value, mnemonic);
-        const link = http_url + "#/explorer/query/" + hash;
-        interaction.followUp({
-          content: `Status: Complete
-    Amount:  ${dest_value} AVL
-    Block Hash: ${hash}
-    🌐 ${hyperlink("View in explorer", link)}`,
-        });
-      } catch (error) {
-        console.error(error);
-        interaction.followUp({
-          content: `testing it out!`,
-          ephemeral: true,
-        });
         try {
           // const amount = formatNumberToBalance(dest_value, decimals);
-          let backup_mnemonic = process.env.BACKUP_SEED_PHRASE;
-          let hash = await transferAccount(dest, dest_value, backup_mnemonic);
+          let hash = await transferAccount(dest, dest_value, mnemonic);
           const link = http_url + "#/explorer/query/" + hash;
           interaction.followUp({
             content: `Status: Complete
-      Amount:  ${dest_value} AVL
-      Block Hash: ${hash}
-      🌐 ${hyperlink("View in explorer", link)}`,
+    Amount:  ${dest_value} AVL
+    Block Hash: ${hash}
+    🌐 ${hyperlink("View in explorer", link)}`,
           });
         } catch (error) {
           console.error(error);
           interaction.followUp({
-            content: `There was a problem with the transfer. Kindly report to the Avail Team.`,
+            content: `testing it out!`,
             ephemeral: true,
           });
+          try {
+            // const amount = formatNumberToBalance(dest_value, decimals);
+            let backup_mnemonic = process.env.BACKUP_SEED_PHRASE;
+            let hash = await transferAccount(dest, dest_value, backup_mnemonic);
+            const link = http_url + "#/explorer/query/" + hash;
+            interaction.followUp({
+              content: `Status: Complete
+      Amount:  ${dest_value} AVL
+      Block Hash: ${hash}
+      🌐 ${hyperlink("View in explorer", link)}`,
+            });
+          } catch (error) {
+            console.error(error);
+            interaction.followUp({
+              content: `There was a problem with the transfer. Kindly report to the Avail Team.`,
+              ephemeral: true,
+            });
+          }
         }
-      }
-      // await api.tx.balances
-      //   .transfer(dest, amount)
-      //   .signAndSend(keyring, options, ({ status, txHash }) => {
-      //     console.log(`Transaction status: ${status.type}`);
-      //     if (status.isFinalized) {
-      //       const blockHash = status.asFinalized;
-      //       const link = http_url + "#/explorer/query/" + blockHash;
-      //       console.log(`transferred ${dest_value} AVL to ${dest}`);
-      //       console.log(`Transaction hash ${txHash.toHex()}`);
-      //       console.log(
-      //         `Transaction included at blockHash ${status.asFinalized}`
-      //       );
-      //       interaction.followUp({
-      //         content: `Status: Complete
-      //       Amount:  ${dest_value} AVL
-      //       Txn Hash: ${txHash}
-      //       Block Hash: ${blockHash}
-      //       🌐 ${hyperlink("View in explorer", link)}`,
-      //       });
-      //     }
-      //   });
-      const WeeklydepositInfo = await db
-        .collection("WeeklyRollupdepositInfo")
-        .findOne({ userId });
-      const DailydepositInfo = await db
-        .collection("DailyRollupdepositInfo")
-        .findOne({ userId });
-      if (WeeklydepositInfo) {
-        let { tokens } = WeeklydepositInfo;
-        await db
+        // await api.tx.balances
+        //   .transfer(dest, amount)
+        //   .signAndSend(keyring, options, ({ status, txHash }) => {
+        //     console.log(`Transaction status: ${status.type}`);
+        //     if (status.isFinalized) {
+        //       const blockHash = status.asFinalized;
+        //       const link = http_url + "#/explorer/query/" + blockHash;
+        //       console.log(`transferred ${dest_value} AVL to ${dest}`);
+        //       console.log(`Transaction hash ${txHash.toHex()}`);
+        //       console.log(
+        //         `Transaction included at blockHash ${status.asFinalized}`
+        //       );
+        //       interaction.followUp({
+        //         content: `Status: Complete
+        //       Amount:  ${dest_value} AVL
+        //       Txn Hash: ${txHash}
+        //       Block Hash: ${blockHash}
+        //       🌐 ${hyperlink("View in explorer", link)}`,
+        //       });
+        //     }
+        //   });
+        const WeeklydepositInfo = await db
           .collection("WeeklyRollupdepositInfo")
-          .updateOne({ userId }, { $set: { tokens: tokens + dest_value } });
-      }
-      if (DailydepositInfo) {
-        let { tokens } = DailydepositInfo;
-        await db
+          .findOne({ userId });
+        const DailydepositInfo = await db
           .collection("DailyRollupdepositInfo")
-          .updateOne({ userId }, { $set: { tokens: tokens + dest_value } });
+          .findOne({ userId });
+        if (WeeklydepositInfo) {
+          let { tokens } = WeeklydepositInfo;
+          await db
+            .collection("WeeklyRollupdepositInfo")
+            .updateOne({ userId }, { $set: { tokens: tokens + dest_value } });
+        }
+        if (DailydepositInfo) {
+          let { tokens } = DailydepositInfo;
+          await db
+            .collection("DailyRollupdepositInfo")
+            .updateOne({ userId }, { $set: { tokens: tokens + dest_value } });
+        }
+      } catch (error) {
+        console.error(error);
+        interaction.followUp({
+          content: `There was a problem with the transfer. Kindly report to the Avail Team.`,
+          ephemeral: true,
+        });
       }
-    } catch (error) {
-      console.error(error);
-      interaction.followUp({
-        content: `There was a problem with the transfer. Kindly report to the Avail Team.`,
-        ephemeral: true,
-      });
-    }
-  },
-});
+    },
+  });
+}
 
 commands.set("override", {
   data: new SlashCommandBuilder()
@@ -434,7 +436,6 @@ commands.set("balance", {
   },
 });
 
-const override_user = false;
 if (override_user) {
   commands.set("force-transfer", {
     data: new SlashCommandBuilder()
