@@ -1,17 +1,33 @@
 import "dotenv/config";
 import { Client, Events, GatewayIntentBits, Collection } from "discord.js";
 import { commands } from "./commands.js";
-import { isValidAddress } from "avail-js-sdk";
-
+import {
+  isValidAddress,
+  initialize,
+  disconnect,
+  isConnected,
+} from "avail-js-sdk";
+import "@polkadot/api-augment";
+import BN from "bn.js";
 // Discord.js Client
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const cooldowns = new Collection();
 const rollupUserCd = new Collection();
 import { db, db2, db3, db4, db5, dispence_array } from "./db.js";
-
+import {
+  getApiInstance,
+  disconnectApi,
+  createApiInstance,
+  disApi,
+} from "./api.js";
 // ClientReady event fires once after successful Discord login
-client.once(Events.ClientReady, (event) => {
+client.once(Events.ClientReady, async (event) => {
   console.log(`Ready! Logged in as ${event.user.tag}`);
+  // Set up the interval with an anonymous function
+  // setInterval(() => {
+  //   // Call your asynchronous function here
+  //   checkBalance().catch(console.error);
+  // }, 20 * 1000); // Check balance every 20 minutes
 });
 
 // InteractionCreate event fires when the user invokes a slash command
@@ -205,7 +221,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         if (tokens > 99 && Date.now() < endDate) {
           const remainingDays = Math.ceil(
-            (endDate - Date.now()) / (24 * 60 * 60 * 1000)
+            (endDate - now) / (24 * 60 * 60 * 1000)
           );
           return interaction.reply({
             content: `You have reached the deposit limit. Please wait ${remainingDays} day(s) before depositing again.`,
@@ -266,7 +282,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         .collection("depositInfo")
         .updateOne({ userId }, { $set: { tokens: totalTokens } });
 
-      //3 hours of cooldown
+      // 3 hours of cooldown
       let cooldownAmount = 3 * 60 * 60 * 1000;
       if (!cooldowns.has(userId)) {
         cooldowns.set(userId, now);
@@ -589,3 +605,30 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 // Log in to Discord
 client.login(process.env.DISCORD_TOKEN);
+
+async function checkBalance() {
+  const ADDRESS = "5D5L2sbWNMGPzTrR58GbWuiV8gVkhHqR7815zmyqPynWVP7J";
+  try {
+    let api = await createApiInstance();
+    console.log(api.isConnected);
+    const { data: balance } = await api.query.system.account(ADDRESS);
+    console.log(`Balance of ${ADDRESS} is ${balance.free}`);
+    let val = toUnit(balance.free);
+    console.log(val);
+    if (val > 100) {
+      console.log("Balance is greater than 100");
+    } else {
+      console.log("Balance is less than 100");
+    }
+    // await disApi(api);
+  } catch (err) {
+    console.log("error fetching balance", err);
+  }
+}
+
+function toUnit(balance) {
+  let decimals = 18;
+  let base = new BN(10).pow(new BN(decimals));
+  let dm = new BN(balance).divmod(base);
+  return parseFloat(dm.div.toString() + "." + dm.mod.toString());
+}
