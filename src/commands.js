@@ -8,13 +8,9 @@ import {
   isValidAddress,
 } from "avail-js-sdk";
 import { db, db2, db3, db4, db5, dispence_array } from "./db.js";
-import {
-  getApiInstance,
-  disconnectApi,
-  createApiInstance,
-  disApi,
-  transferAccount,
-} from "./api.js";
+import { transferAccount } from "./api.js";
+import { logger } from "./logger.js";
+
 export const commands = new Collection();
 
 commands.set("ping", {
@@ -22,7 +18,7 @@ commands.set("ping", {
     .setName("ping")
     .setDescription("Replies with Pong!"),
   execute: async (interaction) => {
-    console.log("Received ping. Responding with pong.");
+    logger.info("Received ping. Responding with pong.");
     await interaction.reply({ content: "Pong!", ephemeral: true });
   },
 });
@@ -55,7 +51,7 @@ commands.set("deposit", {
           ephemeral: true,
         });
       }
-      console.log(`Received deposit request for ${dest}`);
+      logger.info(`Received deposit request for ${dest}`);
       const mnemonic = process.env.SEED_PHRASE;
       const ws_url = process.env.WS_URL;
       const http_url = process.env.HTTP_URL;
@@ -90,9 +86,9 @@ commands.set("deposit", {
     🌐 ${hyperlink("View in explorer", link)}`,
         });
       } catch (error) {
-        console.error(error);
+        logger.error(`Transaction failed for ${dest}, trying backup`);
         interaction.followUp({
-          content: `testing deposit failure`,
+          content: `Retrying transaction with backup`,
           ephemeral: true,
         });
         try {
@@ -107,7 +103,7 @@ commands.set("deposit", {
       🌐 ${hyperlink("View in explorer", link)}`,
           });
         } catch (error) {
-          console.error(error);
+          logger.error(`Transaction failed for ${dest}`);
           interaction.followUp({
             content: `There was a problem with the transfer. Kindly report to the Avail Team.`,
             ephemeral: true,
@@ -117,13 +113,13 @@ commands.set("deposit", {
       // await api.tx.balances
       //   .transfer(dest, amount)
       //   .signAndSend(keyring, options, async ({ status, txHash }) => {
-      //     console.log(`Transaction status: ${status.type}`);
+      //     logger.info(`Transaction status: ${status.type}`);
       //     if (status.isFinalized) {
       //       const blockHash = status.asFinalized;
       //       const link = http_url + "#/explorer/query/" + blockHash;
-      //       console.log(`transferred ${dest_value} AVL to ${dest}`);
-      //       console.log(`Transaction hash ${txHash.toHex()}`);
-      //       console.log(
+      //       logger.info(`transferred ${dest_value} AVL to ${dest}`);
+      //       logger.info(`Transaction hash ${txHash.toHex()}`);
+      //       logger.info(
       //         `Transaction included at blockHash ${status.asFinalized}`
       //       );
       //       interaction.followUp({
@@ -176,7 +172,7 @@ if (override_user) {
             ephemeral: true,
           });
         }
-        console.log(`Received deposit request for ${dest}`);
+        logger.info(`Received deposit request for ${dest}`);
         const mnemonic = process.env.ROLLUP_SEED_PHRASE;
         const ws_url = process.env.WS_URL;
         const http_url = process.env.HTTP_URL;
@@ -226,13 +222,13 @@ if (override_user) {
         // await api.tx.balances
         //   .transfer(dest, amount)
         //   .signAndSend(keyring, options, ({ status, txHash }) => {
-        //     console.log(`Transaction status: ${status.type}`);
+        //     logger.info(`Transaction status: ${status.type}`);
         //     if (status.isFinalized) {
         //       const blockHash = status.asFinalized;
         //       const link = http_url + "#/explorer/query/" + blockHash;
-        //       console.log(`transferred ${dest_value} AVL to ${dest}`);
-        //       console.log(`Transaction hash ${txHash.toHex()}`);
-        //       console.log(
+        //       logger.info(`transferred ${dest_value} AVL to ${dest}`);
+        //       logger.info(`Transaction hash ${txHash.toHex()}`);
+        //       logger.info(
         //         `Transaction included at blockHash ${status.asFinalized}`
         //       );
         //       interaction.followUp({
@@ -296,7 +292,7 @@ commands.set("override", {
     const bypassRole = "1085873829362016256";
     const hasBypassRole = userRoles.has(bypassRole);
     if (!hasBypassRole) {
-      console.log(`does not have the bypass role ${interaction.user.id}`);
+      logger.info(`does not have the bypass role ${interaction.user.id}`);
       return interaction.reply({
         content: `You do not have the required role to use this command.`,
         ephemeral: true,
@@ -344,7 +340,7 @@ commands.set("ban-user", {
     const bypassRole = "1085873829362016256";
     const hasBypassRole = userRoles.has(bypassRole);
     if (!hasBypassRole) {
-      console.log(`does not have the bypass role ${interaction.user.id}`);
+      logger.info(`does not have the bypass role ${interaction.user.id}`);
       return interaction.reply({
         content: `You do not have the required role to use this command.`,
         ephemeral: true,
@@ -372,7 +368,7 @@ commands.set("add-user", {
     const bypassRole = "1085873829362016256";
     const hasBypassRole = userRoles.has(bypassRole);
     if (!hasBypassRole) {
-      console.log(`does not have the bypass role ${interaction.user.id}`);
+      logger.info(`does not have the bypass role ${interaction.user.id}`);
       return interaction.reply({
         content: `You do not have the required role to use this command.`,
         ephemeral: true,
@@ -405,7 +401,7 @@ commands.set("balance", {
       // Submit the transfer transaction
       const address = interaction.options.get("address", true).value;
       if (!isValidAddress(address)) throw new Error("Invalid Recipient");
-      console.log(`Received balance request for ${address}`);
+      logger.info(`Received balance request for ${address}`);
       const mnemonic = process.env.SEED_PHRASE;
       const url = process.env.WS_URL;
       const api = await initialize(url);
@@ -417,14 +413,14 @@ commands.set("balance", {
       // Retrieve the account balance system module
       const { data: balance } = await api.query.system.account(address);
       let decimal_amount = balance.free / Math.pow(10, 18);
-      console.log(`balance of ${address} is ${decimal_amount} `);
+      logger.info(`balance of ${address} is ${decimal_amount} `);
 
       interaction.followUp({
         content: `Status: Complete
         Balance:  ${decimal_amount}`,
       });
     } catch (error) {
-      console.error(error);
+      logger.error({error});
       interaction.followUp({
         content: `There was a problem with the checking balance. Kindly report to the Avail Team.`,
         ephemeral: true,
@@ -462,7 +458,7 @@ if (override_user) {
         const dest = interaction.options.get("address", true).value;
         const token_to_sent = interaction.options.get("amount", true).value;
         if (!isValidAddress(dest)) throw new Error("Invalid Recipient");
-        console.log(`Received deposit request for ${dest}`);
+        logger.info(`Received deposit request for ${dest}`);
         const mnemonic = process.env.SEED_PHRASE;
         const api = await initialize("wss://dymension-devnet.avail.tools/ws");
         // const api = await createApi('local');
@@ -473,15 +469,15 @@ if (override_user) {
         await api.tx.balances
           .transfer(dest, amount)
           .signAndSend(keyring, options, ({ status, txHash }) => {
-            console.log(`Transaction status: ${status.type}`);
+            logger.info(`Transaction status: ${status.type}`);
             if (status.isFinalized) {
               const blockHash = status.asFinalized;
               const link =
                 "https://dymension-devnet.avail.tools/#/explorer/query/" +
                 blockHash;
-              console.log(`transferred ${token_to_sent} AVL to ${dest}`);
-              console.log(`Transaction hash ${txHash.toHex()}`);
-              console.log(
+              logger.info(`transferred ${token_to_sent} AVL to ${dest}`);
+              logger.info(`Transaction hash ${txHash.toHex()}`);
+              logger.info(
                 `Transaction included at blockHash ${status.asFinalized}`
               );
               interaction.followUp({

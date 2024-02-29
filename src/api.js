@@ -9,7 +9,7 @@ import {
 import "@polkadot/api-augment";
 import BN from "bn.js";
 import axios, { AxiosResponse } from "axios";
-
+import { logger } from "./logger";
 let apiInstance = null;
 
 export const getApiInstance = async () => {
@@ -64,19 +64,17 @@ export const transferAccount = async (to, amount, mnemonic) => {
       if (!isValidAddress(to)) {
         throw new Error("Invalid address");
       }
-      const http_url = process.env.HTTP_URL;
       let api = await createApiInstance();
       const decimals = getDecimals(api);
       const value = formatNumberToBalance(amount, decimals);
-      const from = "5D5L2sbWNMGPzTrR58GbWuiV8gVkhHqR7815zmyqPynWVP7J";
       const options = { app_id: 0, nonce: -1 };
       const keyring = getKeyringFromSeed(mnemonic);
       let from_Add = keyring.address;
       const { data: balance } = await api.query.system.account(from_Add);
       let free_bal = toUnit(balance.free);
-      console.log(free_bal);
+      logger.info(`Balance of ${from_Add} is ${free_bal}`);
       if (free_bal < 5000) {
-        console.log(`balance is low ${free_bal}`);
+        logger.info(`balance is low ${free_bal}`);
         sendAlert(`Balance is getting low ${free_bal}`);
       }
       const transfer = api.tx.balances.transfer(to, value);
@@ -85,12 +83,12 @@ export const transferAccount = async (to, amount, mnemonic) => {
         keyring,
         options,
         async ({ status, txHash }) => {
-          console.log(`Transaction status: ${status.type}`);
+          logger.info(`Transaction status: ${status.type}`);
           if (status.isFinalized) {
             blockHash = status.asFinalized;
-            console.log(`transferred ${amount} AVL to ${to}`);
-            console.log(`Transaction hash ${txHash.toHex()}`);
-            console.log(
+            logger.info(`transferred ${amount} AVL to ${to}`);
+            logger.info(`Transaction hash ${txHash.toHex()}`);
+            logger.info(
               `Transaction included at blockHash ${status.asFinalized}`
             );
 
@@ -100,7 +98,7 @@ export const transferAccount = async (to, amount, mnemonic) => {
         }
       );
     } catch (e) {
-      console.log(e);
+      logger.error(`error transferring tokens ${e}`);
       reject(e); // Reject the promise if there is an error
     }
   });

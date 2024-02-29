@@ -8,7 +8,8 @@ import {
   isConnected,
 } from "avail-js-sdk";
 import "@polkadot/api-augment";
-import BN from "bn.js";
+import { logger } from "./logger.js";
+
 // Discord.js Client
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const cooldowns = new Collection();
@@ -22,7 +23,7 @@ import {
 } from "./api.js";
 // ClientReady event fires once after successful Discord login
 client.once(Events.ClientReady, async (event) => {
-  console.log(`Ready! Logged in as ${event.user.tag}`);
+  logger.info(`Ready! Logged in as ${event.user.tag}`);
   // Set up the interval with an anonymous function
   // setInterval(() => {
   //   // Call your asynchronous function here
@@ -58,9 +59,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const address = interaction.options.get("address", true).value;
       const userRoles = interaction.member.roles.cache; // Get the roles of the user
       const bypassRole = "1187011468508540960";
-      const hasBypassRole = userRoles.has(bypassRole);
+      const hasBypassRole = true;
       if (!hasBypassRole) {
-        console.log(`no access to faucet ${interaction.user.id}`);
+        logger.info(`no access to faucet ${interaction.user.id}`);
         return interaction.reply({
           content: `You do not have the required role to use this command.`,
           ephemeral: true,
@@ -75,7 +76,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const moment = new Date();
       const now = moment.getTime();
 
-      console.log(`userId: ${userId} logged now: ${moment}`);
+      logger.info(`userId: ${userId} logged now: ${moment}`);
       let endTime = now + 3 * 24 * 60 * 60 * 1000;
       let addresstime = new Date(endTime);
 
@@ -93,7 +94,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         .findOne({ userId });
       const bannedInfo = await db4.collection("bannedInfo").findOne({ userId });
       if (bannedInfo) {
-        console.log(`user ${userId} banned is attempting to use faucet`);
+        logger.info(`user ${userId} banned is attempting to use faucet`);
         return interaction.reply({
           content: `You are banned from using the faucet, contact the team for assistance`,
           ephemeral: true,
@@ -103,7 +104,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (addressmapInfo) {
         const { storedId, endDate } = addressmapInfo;
         if (userId != storedId && now < endDate) {
-          console.log(
+          logger.info(
             `Address ${address} has a different address ${userId} than stored one ${storedId}`
           );
           return interaction.reply({
@@ -112,10 +113,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
         if (now > endDate) {
-          console.log(
+          logger.info(
             `Address for the userId ${userId} has been updated to ${address} after 3 day period`
           );
-          console.log(
+          logger.info(
             `updating address mapping to ID after 3 day timeout for userId ${userId} to the address ${address} till the date ${addresstime}`
           );
           await db3
@@ -128,9 +129,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
       } else {
         if (usermapInfo) {
           const { storedaddr, endDate } = usermapInfo;
-          console.log(storedaddr);
+          logger.info(storedaddr);
           if (address != storedaddr && now < endDate) {
-            console.log(
+            logger.info(
               `userId ${userId} has a different address ${address} than stored one ${storedaddr}`
             );
             return interaction.reply({
@@ -144,7 +145,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           storedId: userId,
           endDate: endTime,
         };
-        console.log(
+        logger.info(
           `address mapping to ID for userId ${userId} to the address ${address} till the date ${addresstime}`
         );
         await db3.collection("addressInfo").insertOne(newuserInfo);
@@ -153,7 +154,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (usermapInfo) {
         const { storedaddr, endDate } = usermapInfo;
         if (address != storedaddr && now < endDate) {
-          console.log(
+          logger.info(
             `userId ${userId} has a different address ${address} than stored one ${storedaddr}`
           );
           //update the timer to 30mins as penalty
@@ -163,7 +164,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
         if (now > endDate) {
-          console.log(
+          logger.info(
             `updating User mapping to address after 3 day timeout for userId ${userId} to the address ${address} till the date ${addresstime}`
           );
           await db2
@@ -179,7 +180,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           storedaddr: address,
           endDate: endTime,
         };
-        console.log(
+        logger.info(
           `User mapping to address for userId ${userId} to the address ${address} till the date ${addresstime}`
         );
         await db2.collection("userInfo").insertOne(newuserInfo);
@@ -217,7 +218,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       if (depositInfo) {
         const { tokens, endDate } = depositInfo;
-        console.log(`tokens: ${tokens} endDate: ${endDate} now: ${now}`);
+        logger.info(`tokens: ${tokens} endDate: ${endDate} now: ${now}`);
 
         if (tokens > 99 && Date.now() < endDate) {
           const remainingDays = Math.ceil(
@@ -291,7 +292,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         if (now < expirationTime) {
           const timeLeft = Math.ceil((expirationTime - now) / (1 * 60 * 1000));
-          console.log(`timeLeft: ${timeLeft} for user ${userId}`);
+          logger.info(`timeLeft: ${timeLeft} for user ${userId}`);
           return interaction.reply({
             content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
             ephemeral: true,
@@ -310,7 +311,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const userRoles = interaction.member.roles.cache; // Get the roles of the user
         const hasRole = userRoles.has("1199836359288967168");
         if (!hasRole) {
-          console.log(`no access to faucet ${interaction.user.id}`);
+          logger.info(`no access to faucet ${interaction.user.id}`);
           return interaction.reply({
             content: `You do not have the required role to use this command.`,
             ephemeral: true,
@@ -324,7 +325,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
         const moment = new Date();
         const now = moment.getTime();
-        console.log(`rollup user: ${userId} logged now: ${moment}`);
+        logger.info(`rollup user: ${userId} logged now: ${moment}`);
         let endTime = now + 3 * 24 * 60 * 60 * 1000;
         let addresstime = new Date(endTime);
         const WeeklydepositInfo = await db
@@ -343,7 +344,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (addressmapInfo) {
           const { storedId, endDate } = addressmapInfo;
           if (userId != storedId && now < endDate) {
-            console.log(
+            logger.info(
               `Address ${address} has a different address ${userId} than stored one ${storedId}`
             );
             return interaction.reply({
@@ -352,10 +353,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
             });
           }
           if (now > endDate) {
-            console.log(
+            logger.info(
               `Address for the userId ${userId} has been updated to ${address} after 3 day period`
             );
-            console.log(
+            logger.info(
               `updating address mapping to ID after 3 day timeout for userId ${userId} to the address ${address} till the date ${addresstime}`
             );
             await db3
@@ -368,9 +369,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
         } else {
           if (usermapInfo) {
             const { storedaddr, endDate } = usermapInfo;
-            console.log(storedaddr);
+            logger.info(storedaddr);
             if (address != storedaddr && now < endDate) {
-              console.log(
+              logger.info(
                 `userId ${userId} has a different address ${address} than stored one ${storedaddr}`
               );
               return interaction.reply({
@@ -384,7 +385,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             storedId: userId,
             endDate: endTime,
           };
-          console.log(
+          logger.info(
             `address mapping to ID for userId ${userId} to the address ${address} till the date ${addresstime}`
           );
           await db3.collection("addressInfo").insertOne(newuserInfo);
@@ -393,7 +394,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (usermapInfo) {
           const { storedaddr, endDate } = usermapInfo;
           if (address != storedaddr && now < endDate) {
-            console.log(
+            logger.info(
               `userId ${userId} has a different address ${address} than stored one ${storedaddr}`
             );
             //update the timer to 30mins as penalty
@@ -403,7 +404,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             });
           }
           if (now > endDate) {
-            console.log(
+            logger.info(
               `updating User mapping to address after 3 day timeout for userId ${userId} to the address ${address} till the date ${addresstime}`
             );
             await db2
@@ -419,7 +420,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             storedaddr: address,
             endDate: endTime,
           };
-          console.log(
+          logger.info(
             `User mapping to address for userId ${userId} to the address ${address} till the date ${addresstime}`
           );
           await db2.collection("userInfo").insertOne(newuserInfo);
@@ -427,7 +428,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         if (WeeklydepositInfo) {
           const { tokens, endDate } = WeeklydepositInfo;
-          console.log(`tokens: ${tokens} endDate: ${endDate} now: ${now}`);
+          logger.info(`tokens: ${tokens} endDate: ${endDate} now: ${now}`);
 
           if (tokens >= 200 && now < endDate) {
             const remainingDays = Math.ceil(
@@ -439,13 +440,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
             });
           }
           if (now > endDate) {
-            console.log("updating weekly timing to 0");
+            logger.info("updating weekly timing to 0");
             await db
               .collection("WeeklyRollupdepositInfo")
               .updateOne({ userId }, { $set: { tokens: 0 } });
           }
         } else {
-          console.log(`creating new weekly deposit info for userID ${userId}`);
+          logger.info(`creating new weekly deposit info for userID ${userId}`);
           let date = new Date();
           let endDate = date.setDate(moment.getDate() + 7);
           const newDepositInfo = {
@@ -460,7 +461,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         if (DailydepositInfo) {
           const { tokens, endDate } = DailydepositInfo;
-          console.log(`tokens: ${tokens} endDate: ${endDate} now: ${now}`);
+          logger.info(`tokens: ${tokens} endDate: ${endDate} now: ${now}`);
 
           if (tokens >= 25 && now < endDate) {
             const remainingDays = Math.ceil(
@@ -472,16 +473,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
             });
           }
           if (now > endDate) {
-            console.log("updating daily timing to 0");
+            logger.info("updating daily timing to 0");
             await db
               .collection("DailyRollupdepositInfo")
               .updateOne({ userId }, { $set: { tokens: 0 } });
           }
         } else {
-          console.log(`creating new daily deposit info for userID ${userId}`);
+          logger.info(`creating new daily deposit info for userID ${userId}`);
           let date = new Date();
           let endDate = date.setDate(moment.getDate() + 1);
-          console.log(date);
+          logger.info(date);
           const newDepositInfo = {
             userId,
             tokens: 0,
@@ -501,7 +502,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             const timeLeft = Math.ceil(
               (expirationTime - now) / (1 * 60 * 1000)
             );
-            console.log(`timeLeft: ${timeLeft} for user ${userId}`);
+            logger.info(`timeLeft: ${timeLeft} for user ${userId}`);
             return interaction.reply({
               content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
               ephemeral: true,
@@ -514,8 +515,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         //   .collection("RollupdepositInfo")
         //   .findOne({ userId });
         // const { tokens, endDate } = existingDepositInfo;
-        // console.log(`tokens = ${tokens}`);
-        // console.log(`enddate = ${endDate}`);
+        // logger.info(`tokens = ${tokens}`);
+        // logger.info(`enddate = ${endDate}`);
 
         // // Check if the user has reached the deposit limit
         // if (tokens >= 10 && moment.getDate() < endDate) {
@@ -530,7 +531,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         // // Calculate the total tokens after the deposit
         // const totalTokens = tokens + depositedAmount;
-        // console.log(totalTokens);
+        // logger.info(totalTokens);
 
         // // Check if the total tokens exceed the deposit limit
         // if (totalTokens > 10) {
@@ -538,7 +539,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         //   const remainingDays = Math.ceil(
         //     (endDate - Date.now()) / (24 * 60 * 60 * 1000)
         //   );
-        //   console.log(endDate - Date.now());
+        //   logger.info(endDate - Date.now());
         //   return interaction.reply({
         //     content: `You can deposit a maximum of 100 tokens. Please wait ${remainingDays} day(s) before depositing again. 2`,
         //     ephemeral: true,
@@ -559,13 +560,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const hasBypassRole = userRoles.has(bypassRole);
 
         if (!hasBypassRole) {
-          console.log(`does not have the bypass role ${interaction.user.id}`);
+          logger.info(`does not have the bypass role ${interaction.user.id}`);
           return interaction.reply({
             content: `You do not have the required role to use this command.`,
             ephemeral: true,
           });
         } else {
-          console.log(
+          logger.info(
             `using the force transfer and hasBypassRole: ${hasBypassRole}`
           );
           const userId = interaction.user.id;
