@@ -202,7 +202,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             .collection("tokenInfo")
             .updateOne(
               { userId },
-              { $set: { endDate: Date.now() + 7 * 24 * 60 * 60 * 1000 } }
+              { $set: { endDate: now + 7 * 24 * 60 * 60 * 1000 } }
             );
         }
       } else {
@@ -228,10 +228,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
         if (now > endDate) {
+          let endWeekTime = moment.setDate(moment.getDate() + 7);
           logger.info("Updating depositInfo to 0");
           await db
             .collection("depositInfo")
             .updateOne({ userId }, { $set: { tokens: 0 } });
+          await db
+            .collection("depositInfo")
+            .updateOne({ userId }, { $set: { endDate: endWeekTime } });
         }
       } else {
         // If no deposit info exists for the user, create a new entry
