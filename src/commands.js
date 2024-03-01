@@ -132,6 +132,16 @@ commands.set("deposit", {
       //       await disApi(api);
       //     }
       //   });
+      const DailydepositInfo = await db
+        .collection("depositInfo")
+        .findOne({ userId });
+      if (DailydepositInfo) {
+        let { tokens } = DailydepositInfo;
+        let depositedValue = tokens + dest_value;
+        await db
+          .collection("depositInfo")
+          .updateOne({ userId }, { $set: { tokens: depositedValue } });
+      }
       await db5
         .collection("tokenInfo")
         .updateOne({ userId }, { $set: { tokenIndex: index + 1 } });
@@ -420,7 +430,7 @@ commands.set("balance", {
         Balance:  ${decimal_amount}`,
       });
     } catch (error) {
-      logger.error({error});
+      logger.error({ error });
       interaction.followUp({
         content: `There was a problem with the checking balance. Kindly report to the Avail Team.`,
         ephemeral: true,

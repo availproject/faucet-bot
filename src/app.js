@@ -77,7 +77,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const now = moment.getTime();
 
       logger.info(`userId: ${userId} logged now: ${moment}`);
-      let endTime = now + 3 * 24 * 60 * 60 * 1000;
+      let endTime = now + 5 * 24 * 60 * 60 * 1000;
       let addresstime = new Date(endTime);
 
       // Check if the user has exceeded the deposit limit
@@ -188,7 +188,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       if (tokenmapInfo) {
         const { tokenIndex, endDate } = tokenmapInfo;
-        if (Date.now() < endDate) {
+        if (now < endDate) {
           if (tokenIndex > dispence_array.length - 1) {
             await db5
               .collection("tokenInfo")
@@ -205,9 +205,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
               { $set: { endDate: Date.now() + 7 * 24 * 60 * 60 * 1000 } }
             );
         }
-      }
-
-      if (!tokenmapInfo) {
+      } else {
         const newtokenInfo = {
           userId,
           tokenIndex: 0,
@@ -220,7 +218,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const { tokens, endDate } = depositInfo;
         logger.info(`tokens: ${tokens} endDate: ${endDate} now: ${now}`);
 
-        if (tokens > 99 && Date.now() < endDate) {
+        if (tokens > 100 && now < endDate) {
           const remainingDays = Math.ceil(
             (endDate - now) / (24 * 60 * 60 * 1000)
           );
@@ -229,59 +227,23 @@ client.on(Events.InteractionCreate, async (interaction) => {
             ephemeral: true,
           });
         }
+        if (now > endDate) {
+          logger.info("Updating depositInfo to 0");
+          await db
+            .collection("depositInfo")
+            .updateOne({ userId }, { $set: { tokens: 0 } });
+        }
       } else {
         // If no deposit info exists for the user, create a new entry
+        logger.info(`creating new deposit info for userID ${userId}`);
+        let endDate = moment.setDate(moment.getDate() + 7);
         const newDepositInfo = {
           userId,
           tokens: 0,
-          endDate: Date.now() + 15 * 24 * 60 * 60 * 1000,
+          endDate: endDate,
         };
         await db.collection("depositInfo").insertOne(newDepositInfo);
       }
-
-      // Proceed with the deposit logic here
-      // Update the user's token balance and perform the transfer
-      // Add the deposited amount to the existing balance
-      const existTokenInfo = await db5
-        .collection("tokenInfo")
-        .findOne({ userId });
-      const { tokenIndex } = existTokenInfo;
-      const depositedAmount = dispence_array[tokenIndex];
-      const existingDepositInfo = await db
-        .collection("depositInfo")
-        .findOne({ userId });
-      const { tokens, endDate } = existingDepositInfo;
-
-      // Check if the user has reached the deposit limit
-      if (tokens >= 100 && Date.now() < endDate) {
-        const remainingDays = Math.ceil(
-          (endDate - Date.now()) / (24 * 60 * 60 * 1000)
-        );
-        return interaction.reply({
-          content: `You have reached the deposit limit. Please wait ${remainingDays} day(s) before depositing again.`,
-          ephemeral: true,
-        });
-      }
-
-      // Calculate the total tokens after the deposit
-      const totalTokens = tokens + depositedAmount;
-
-      // Check if the total tokens exceed the deposit limit
-      if (totalTokens > 100) {
-        const remainingTokens = 100 - tokens;
-        const remainingDays = Math.ceil(
-          (endDate - Date.now()) / (24 * 60 * 60 * 1000)
-        );
-        return interaction.reply({
-          content: `You can deposit a maximum of 100 tokens. Please wait ${remainingDays} day(s) before depositing again.`,
-          ephemeral: true,
-        });
-      }
-
-      // Update the user's deposit information and perform the transfer
-      await db
-        .collection("depositInfo")
-        .updateOne({ userId }, { $set: { tokens: totalTokens } });
 
       // 3 hours of cooldown
       let cooldownAmount = 3 * 60 * 60 * 1000;
