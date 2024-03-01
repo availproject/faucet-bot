@@ -229,7 +229,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
         if (now > endDate) {
           let endWeekTime = moment.setDate(moment.getDate() + 7);
-          logger.info("Updating depositInfo to 0");
+          logger.info(`Updating depositInfo to 0 for userId: ${userId}`);
           await db
             .collection("depositInfo")
             .updateOne({ userId }, { $set: { tokens: 0 } });
