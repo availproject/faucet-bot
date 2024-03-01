@@ -116,11 +116,9 @@ function sendAlert(message) {
       },
     })
     .then((response) => {
-      console.log();
-      "Response:" + JSON.stringify(response.data);
+      logger.log("Response:" + JSON.stringify(response.data));
     })
     .catch((error) => {
-      console.log();
-      "Error in sending slack alert:", { error };
+      logger.error(`Error in sending slack alert: ${error}`);
     });
 }

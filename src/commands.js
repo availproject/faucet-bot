@@ -110,28 +110,6 @@ commands.set("deposit", {
           });
         }
       }
-      // await api.tx.balances
-      //   .transfer(dest, amount)
-      //   .signAndSend(keyring, options, async ({ status, txHash }) => {
-      //     logger.info(`Transaction status: ${status.type}`);
-      //     if (status.isFinalized) {
-      //       const blockHash = status.asFinalized;
-      //       const link = http_url + "#/explorer/query/" + blockHash;
-      //       logger.info(`transferred ${dest_value} AVL to ${dest}`);
-      //       logger.info(`Transaction hash ${txHash.toHex()}`);
-      //       logger.info(
-      //         `Transaction included at blockHash ${status.asFinalized}`
-      //       );
-      //       interaction.followUp({
-      //         content: `Status: Complete
-      //       Amount:  ${dest_value} AVL
-      //       Txn Hash: ${txHash}
-      //       Block Hash: ${blockHash}
-      //       🌐 ${hyperlink("View in explorer", link)}`,
-      //       });
-      //       await disApi(api);
-      //     }
-      //   });
       const DailydepositInfo = await db
         .collection("depositInfo")
         .findOne({ userId });
@@ -229,27 +207,6 @@ if (override_user) {
             });
           }
         }
-        // await api.tx.balances
-        //   .transfer(dest, amount)
-        //   .signAndSend(keyring, options, ({ status, txHash }) => {
-        //     logger.info(`Transaction status: ${status.type}`);
-        //     if (status.isFinalized) {
-        //       const blockHash = status.asFinalized;
-        //       const link = http_url + "#/explorer/query/" + blockHash;
-        //       logger.info(`transferred ${dest_value} AVL to ${dest}`);
-        //       logger.info(`Transaction hash ${txHash.toHex()}`);
-        //       logger.info(
-        //         `Transaction included at blockHash ${status.asFinalized}`
-        //       );
-        //       interaction.followUp({
-        //         content: `Status: Complete
-        //       Amount:  ${dest_value} AVL
-        //       Txn Hash: ${txHash}
-        //       Block Hash: ${blockHash}
-        //       🌐 ${hyperlink("View in explorer", link)}`,
-        //       });
-        //     }
-        //   });
         const WeeklydepositInfo = await db
           .collection("WeeklyRollupdepositInfo")
           .findOne({ userId });
