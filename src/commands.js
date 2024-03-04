@@ -41,8 +41,6 @@ commands.set("deposit", {
       // Let the user know it's pending
       interaction.followUp({ content: "Status: Sending", ephemeral: true });
       // Submit the transfer transaction
-      let dest_value = 0;
-      let index = 0;
       const userId = interaction.user.id;
       const dest = interaction.options.get("address", true).value;
       if (!isValidAddress(dest)) {
@@ -55,48 +53,28 @@ commands.set("deposit", {
         `Received deposit request with address ${dest} for userId ${userId}`
       );
       const mnemonic = process.env.SEED_PHRASE;
-      const ws_url = process.env.WS_URL;
       const http_url = process.env.HTTP_URL;
-      // let api = await getApiInstance();
-      const keyring = getKeyringFromSeed(mnemonic);
-      const options = { app_id: 0, nonce: -1 };
-      // const decimals = getDecimals(api);
-      const tokenmapInfo = await db5
-        .collection("tokenInfo")
-        .findOne({ userId });
-      if (tokenmapInfo) {
-        let { tokenIndex } = tokenmapInfo;
-        if (tokenIndex > dispence_array.length - 1) {
-          tokenIndex = 3;
-        }
-        index = tokenIndex;
-        dest_value = dispence_array[tokenIndex];
-      } else {
-        dest_value = dispence_array[0];
-        // await db5
-        //   .collection("tokenInfo")
-        //   .updateOne({ userId }, { $set: { tokenIndex: 0 } });
-      }
       try {
         // const amount = formatNumberToBalance(dest_value, decimals);
-        let hash = await transferAccount(dest, dest_value, mnemonic);
+        let returnValue = await transferAccount(userId, dest, mnemonic);
+        let hash = returnValue[0];
         const link = http_url + "#/explorer/query/" + hash;
         interaction.followUp({
           content: `Status: Complete
-    Amount:  ${dest_value} AVL
+    Amount:  ${returnValue[1]} AVL
     Block Hash: ${hash}
     🌐 ${hyperlink("View in explorer", link)}`,
         });
       } catch (error) {
+        console.log(error);
         logger.warn(`Transaction failed for ${dest}, trying backup`);
         interaction.followUp({
           content: `Retrying transaction with backup`,
           ephemeral: true,
         });
         try {
-          // const amount = formatNumberToBalance(dest_value, decimals);
           let backup_mnemonic = process.env.BACKUP_SEED_PHRASE;
-          let hash = await transferAccount(dest, dest_value, backup_mnemonic);
+          let hash = await transferAccount(userId, dest, backup_mnemonic);
           const link = http_url + "#/explorer/query/" + hash;
           interaction.followUp({
             content: `Status: Complete
@@ -112,18 +90,6 @@ commands.set("deposit", {
           });
         }
       }
-      const DailydepositInfo = await db
-        .collection("depositInfo")
-        .findOne({ userId });
-      if (DailydepositInfo) {
-        let { tokens } = DailydepositInfo;
-        await db
-          .collection("depositInfo")
-          .updateOne({ userId }, { $set: { tokens: tokens + dest_value } });
-      }
-      await db5
-        .collection("tokenInfo")
-        .updateOne({ userId }, { $set: { tokenIndex: index + 1 } });
     } catch (error) {
       console.error(error);
       interaction.followUp({

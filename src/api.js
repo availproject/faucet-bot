@@ -11,6 +11,7 @@ import BN from "bn.js";
 import axios, { AxiosResponse } from "axios";
 import { logger } from "./logger";
 let apiInstance = null;
+import { db, db5, dispence_array } from "./db.js";
 
 export const getApiInstance = async () => {
   if (apiInstance) {
@@ -58,7 +59,7 @@ function toUnit(balance) {
   return parseFloat(dm.div.toString() + "." + dm.mod.toString());
 }
 
-export const transferAccount = async (to, amount, mnemonic) => {
+export const transferAccount = async (userId, to, mnemonic) => {
   return new Promise(async (resolve, reject) => {
     try {
       if (!isValidAddress(to)) {
@@ -66,7 +67,22 @@ export const transferAccount = async (to, amount, mnemonic) => {
       }
       let api = await createApiInstance();
       const decimals = getDecimals(api);
-      const value = formatNumberToBalance(amount, decimals);
+      let dest_value = 0;
+      let index = 0;
+      const tokenmapInfo = await db5
+        .collection("tokenInfo")
+        .findOne({ userId });
+      if (tokenmapInfo) {
+        let { tokenIndex } = tokenmapInfo;
+        if (tokenIndex > dispence_array.length - 1) {
+          tokenIndex = 3;
+        }
+        index = tokenIndex;
+        dest_value = dispence_array[tokenIndex];
+      } else {
+        dest_value = dispence_array[0];
+      }
+      const value = formatNumberToBalance(dest_value, decimals);
       const options = { app_id: 0, nonce: -1 };
       const keyring = getKeyringFromSeed(mnemonic);
       let from_Add = keyring.address;
@@ -85,15 +101,30 @@ export const transferAccount = async (to, amount, mnemonic) => {
         async ({ status, txHash }) => {
           logger.info(`Transaction status: ${status.type}`);
           if (status.isFinalized) {
-            blockHash = status.asFinalized;
-            logger.info(`transferred ${amount} AVL to ${to}`);
+            logger.info(`transferred ${dest_value} AVL to ${to}`);
             logger.info(`Transaction hash ${txHash.toHex()}`);
             logger.info(
               `Transaction included at blockHash ${status.asFinalized}`
             );
-
+            const DailydepositInfo = await db
+              .collection("depositInfo")
+              .findOne({ userId });
+            if (DailydepositInfo) {
+              let { tokens } = DailydepositInfo;
+              let depositupdate = await db
+                .collection("depositInfo")
+                .updateOne(
+                  { userId },
+                  { $set: { tokens: tokens + dest_value } }
+                );
+              console.log("depositInfo Update: ", depositupdate);
+            }
+            let tokenupdate = await db5
+              .collection("tokenInfo")
+              .updateOne({ userId }, { $set: { tokenIndex: index + 1 } });
+            console.log("tokenInfo update: ", tokenupdate);
             await disApi(api);
-            resolve(blockHash); // Resolve the promise with the block hash
+            resolve([status.asFinalized, dest_value]); // Resolve the promise with the block hash
           }
         }
       );
