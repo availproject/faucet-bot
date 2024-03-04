@@ -24,11 +24,6 @@ import {
 // ClientReady event fires once after successful Discord login
 client.once(Events.ClientReady, async (event) => {
   logger.info(`Ready! Logged in as ${event.user.tag}`);
-  // Set up the interval with an anonymous function
-  // setInterval(() => {
-  //   // Call your asynchronous function here
-  //   checkBalance().catch(console.error);
-  // }, 20 * 1000); // Check balance every 20 minutes
 });
 
 // InteractionCreate event fires when the user invokes a slash command
@@ -59,7 +54,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const address = interaction.options.get("address", true).value;
       const userRoles = interaction.member.roles.cache; // Get the roles of the user
       const bypassRole = "1187011468508540960";
-      const hasBypassRole = userRoles.has(bypassRole);
+      const hasBypassRole = true;
       if (!hasBypassRole) {
         logger.info(`no access to faucet ${interaction.user.id}`);
         return interaction.reply({

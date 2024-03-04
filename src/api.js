@@ -94,7 +94,20 @@ export const transferAccount = async (userId, to, mnemonic) => {
         sendAlert(`Balance is getting low ${free_bal}`);
       }
       const transfer = api.tx.balances.transfer(to, value);
-      let blockHash = null;
+      const DailydepositInfo = await db
+        .collection("depositInfo")
+        .findOne({ userId });
+      if (DailydepositInfo) {
+        let { tokens } = DailydepositInfo;
+        let depositupdate = await db
+          .collection("depositInfo")
+          .updateOne({ userId }, { $set: { tokens: tokens + dest_value } });
+        console.log("depositInfo Update: ", depositupdate);
+      }
+      let tokenupdate = await db5
+        .collection("tokenInfo")
+        .updateOne({ userId }, { $set: { tokenIndex: index + 1 } });
+      console.log("tokenInfo update: ", tokenupdate);
       const hash = await transfer.signAndSend(
         keyring,
         options,
@@ -106,23 +119,6 @@ export const transferAccount = async (userId, to, mnemonic) => {
             logger.info(
               `Transaction included at blockHash ${status.asFinalized}`
             );
-            const DailydepositInfo = await db
-              .collection("depositInfo")
-              .findOne({ userId });
-            if (DailydepositInfo) {
-              let { tokens } = DailydepositInfo;
-              let depositupdate = await db
-                .collection("depositInfo")
-                .updateOne(
-                  { userId },
-                  { $set: { tokens: tokens + dest_value } }
-                );
-              console.log("depositInfo Update: ", depositupdate);
-            }
-            let tokenupdate = await db5
-              .collection("tokenInfo")
-              .updateOne({ userId }, { $set: { tokenIndex: index + 1 } });
-            console.log("tokenInfo update: ", tokenupdate);
             await disApi(api);
             resolve([status.asFinalized, dest_value]); // Resolve the promise with the block hash
           }
