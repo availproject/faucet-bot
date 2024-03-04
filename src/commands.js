@@ -51,7 +51,9 @@ commands.set("deposit", {
           ephemeral: true,
         });
       }
-      logger.info(`Received deposit request for ${dest}`);
+      logger.info(
+        `Received deposit request with address ${dest} for userId ${userId}`
+      );
       const mnemonic = process.env.SEED_PHRASE;
       const ws_url = process.env.WS_URL;
       const http_url = process.env.HTTP_URL;
@@ -115,10 +117,9 @@ commands.set("deposit", {
         .findOne({ userId });
       if (DailydepositInfo) {
         let { tokens } = DailydepositInfo;
-        let depositedValue = tokens + dest_value;
         await db
           .collection("depositInfo")
-          .updateOne({ userId }, { $set: { tokens: depositedValue } });
+          .updateOne({ userId }, { $set: { tokens: tokens + dest_value } });
       }
       await db5
         .collection("tokenInfo")

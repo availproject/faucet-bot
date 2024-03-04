@@ -216,7 +216,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       if (depositInfo) {
         const { tokens, endDate } = depositInfo;
-        logger.info(`tokens: ${tokens} endDate: ${endDate} now: ${now}`);
+        logger.info(`userId: ${userId} tokens: ${tokens} endDate: ${endDate} now: ${now}`);
 
         if (tokens > 100 && now < endDate) {
           const remainingDays = Math.ceil(
