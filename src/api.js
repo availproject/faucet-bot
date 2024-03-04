@@ -98,7 +98,7 @@ export const transferAccount = async (to, amount, mnemonic) => {
         }
       );
     } catch (e) {
-      logger.error(`error transferring tokens ${e}`);
+      logger.warn(`error transferring tokens ${e}`);
       reject(e); // Reject the promise if there is an error
     }
   });
@@ -119,6 +119,6 @@ function sendAlert(message) {
       logger.log("Response:" + JSON.stringify(response.data));
     })
     .catch((error) => {
-      logger.error(`Error in sending slack alert: ${error}`);
+      logger.warn(`Error in sending slack alert: ${error}`);
     });
 }

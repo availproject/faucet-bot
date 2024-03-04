@@ -88,7 +88,7 @@ commands.set("deposit", {
     🌐 ${hyperlink("View in explorer", link)}`,
         });
       } catch (error) {
-        logger.error(`Transaction failed for ${dest}, trying backup`);
+        logger.warn(`Transaction failed for ${dest}, trying backup`);
         interaction.followUp({
           content: `Retrying transaction with backup`,
           ephemeral: true,
@@ -105,7 +105,7 @@ commands.set("deposit", {
       🌐 ${hyperlink("View in explorer", link)}`,
           });
         } catch (error) {
-          logger.error(`Transaction failed for ${dest}`);
+          logger.warn(`Transaction failed for ${dest}`);
           interaction.followUp({
             content: `There was a problem with the transfer. Kindly report to the Avail Team.`,
             ephemeral: true,
@@ -388,7 +388,7 @@ commands.set("balance", {
         Balance:  ${decimal_amount}`,
       });
     } catch (error) {
-      logger.error({ error });
+      logger.warn({ error });
       interaction.followUp({
         content: `There was a problem with the checking balance. Kindly report to the Avail Team.`,
         ephemeral: true,
