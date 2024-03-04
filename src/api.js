@@ -20,14 +20,22 @@ export const getApiInstance = async () => {
       console.log("API instance is connected");
       return apiInstance;
     } else {
-      console.log("API instance is not connected");
-      apiInstance = await initialize(process.env.WS_URL);
-      return apiInstance;
+      try {
+        console.log("API instance is not connected");
+        apiInstance = await initialize(process.env.WS_URL);
+        return apiInstance;
+      } catch (e) {
+        logger.error(`Api connection failed ${e}`);
+      }
     }
   } else {
-    console.log("Initializing new API instance");
-    apiInstance = await initialize(process.env.WS_URL);
-    return apiInstance;
+    try {
+      console.log("Initializing new API instance");
+      apiInstance = await initialize(process.env.WS_URL);
+      return apiInstance;
+    } catch (e) {
+      logger.error(`Api connection failed ${e}`);
+    }
   }
 };
 
@@ -102,12 +110,12 @@ export const transferAccount = async (userId, to, mnemonic) => {
         let depositupdate = await db
           .collection("depositInfo")
           .updateOne({ userId }, { $set: { tokens: tokens + dest_value } });
-        console.log("depositInfo Update: ", depositupdate);
+        logger.info(`depositInfo Update for ${userId}`);
       }
       let tokenupdate = await db5
         .collection("tokenInfo")
         .updateOne({ userId }, { $set: { tokenIndex: index + 1 } });
-      console.log("tokenInfo update: ", tokenupdate);
+      logger.info(`tokenInfo update for ${userId}`);
       const hash = await transfer.signAndSend(
         keyring,
         options,
