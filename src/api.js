@@ -98,9 +98,9 @@ export const transferAccount = async (userId, to, mnemonic) => {
       const { data: balance } = await api.query.system.account(from_Add);
       let free_bal = toUnit(balance.free);
       logger.info(`Balance of ${from_Add} is ${free_bal}`);
+      tracer.dogstatsd.gauge("faucet.balance", Number(free_bal));
       if (free_bal < 5000) {
         logger.info(`balance is low ${free_bal}`);
-        tracer.dogstatsd.gauge("faucet.balance", Number(free_bal));
         sendAlert(`Balance is getting low ${free_bal}`);
       }
       const transfer = api.tx.balances.transfer(to, value);
