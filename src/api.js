@@ -12,6 +12,7 @@ import axios, { AxiosResponse } from "axios";
 import { logger } from "./logger";
 let apiInstance = null;
 import { db, db5, dispence_array } from "./db.js";
+import tracer from "./metrics.js";
 
 export const getApiInstance = async () => {
   if (apiInstance) {
@@ -99,6 +100,7 @@ export const transferAccount = async (userId, to, mnemonic) => {
       logger.info(`Balance of ${from_Add} is ${free_bal}`);
       if (free_bal < 5000) {
         logger.info(`balance is low ${free_bal}`);
+        tracer.dogstatsd.gauge("operator.request_slot", Number(free_bal));
         sendAlert(`Balance is getting low ${free_bal}`);
       }
       const transfer = api.tx.balances.transfer(to, value);
