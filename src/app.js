@@ -8,7 +8,8 @@ import {
   isConnected,
 } from "avail-js-sdk";
 import "@polkadot/api-augment";
-import BN from "bn.js";
+import { logger } from "./logger.js";
+
 // Discord.js Client
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const cooldowns = new Collection();
@@ -22,12 +23,7 @@ import {
 } from "./api.js";
 // ClientReady event fires once after successful Discord login
 client.once(Events.ClientReady, async (event) => {
-  console.log(`Ready! Logged in as ${event.user.tag}`);
-  // Set up the interval with an anonymous function
-  // setInterval(() => {
-  //   // Call your asynchronous function here
-  //   checkBalance().catch(console.error);
-  // }, 20 * 1000); // Check balance every 20 minutes
+  logger.info(`Ready! Logged in as ${event.user.tag}`);
 });
 
 // InteractionCreate event fires when the user invokes a slash command
@@ -57,10 +53,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const userId = interaction.user.id;
       const address = interaction.options.get("address", true).value;
       const userRoles = interaction.member.roles.cache; // Get the roles of the user
-      const bypassRole = "1174943621875761153";
-      const hasBypassRole = true;
+      const bypassRole = "1187011468508540960";
+      const hasBypassRole = userRoles.has(bypassRole);
       if (!hasBypassRole) {
-        console.log(`no access to faucet ${interaction.user.id}`);
+        logger.info(`no access to faucet ${interaction.user.id}`);
         return interaction.reply({
           content: `You do not have the required role to use this command.`,
           ephemeral: true,
@@ -75,8 +71,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const moment = new Date();
       const now = moment.getTime();
 
-      console.log(`userId: ${userId} logged now: ${moment}`);
-      let endTime = now + 3 * 24 * 60 * 60 * 1000;
+      logger.info(`userId: ${userId} logged now: ${moment}`);
+      let endTime = now + 5 * 24 * 60 * 60 * 1000;
       let addresstime = new Date(endTime);
 
       // Check if the user has exceeded the deposit limit
@@ -93,7 +89,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         .findOne({ userId });
       const bannedInfo = await db4.collection("bannedInfo").findOne({ userId });
       if (bannedInfo) {
-        console.log(`user ${userId} banned is attempting to use faucet`);
+        logger.info(`user ${userId} banned is attempting to use faucet`);
         return interaction.reply({
           content: `You are banned from using the faucet, contact the team for assistance`,
           ephemeral: true,
@@ -103,7 +99,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (addressmapInfo) {
         const { storedId, endDate } = addressmapInfo;
         if (userId != storedId && now < endDate) {
-          console.log(
+          logger.info(
             `Address ${address} has a different address ${userId} than stored one ${storedId}`
           );
           return interaction.reply({
@@ -112,10 +108,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
         if (now > endDate) {
-          console.log(
+          logger.info(
             `Address for the userId ${userId} has been updated to ${address} after 3 day period`
           );
-          console.log(
+          logger.info(
             `updating address mapping to ID after 3 day timeout for userId ${userId} to the address ${address} till the date ${addresstime}`
           );
           await db3
@@ -128,9 +124,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
       } else {
         if (usermapInfo) {
           const { storedaddr, endDate } = usermapInfo;
-          console.log(storedaddr);
+          logger.info(storedaddr);
           if (address != storedaddr && now < endDate) {
-            console.log(
+            logger.info(
               `userId ${userId} has a different address ${address} than stored one ${storedaddr}`
             );
             return interaction.reply({
@@ -144,7 +140,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           storedId: userId,
           endDate: endTime,
         };
-        console.log(
+        logger.info(
           `address mapping to ID for userId ${userId} to the address ${address} till the date ${addresstime}`
         );
         await db3.collection("addressInfo").insertOne(newuserInfo);
@@ -153,7 +149,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (usermapInfo) {
         const { storedaddr, endDate } = usermapInfo;
         if (address != storedaddr && now < endDate) {
-          console.log(
+          logger.info(
             `userId ${userId} has a different address ${address} than stored one ${storedaddr}`
           );
           //update the timer to 30mins as penalty
@@ -163,7 +159,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
         if (now > endDate) {
-          console.log(
+          logger.info(
             `updating User mapping to address after 3 day timeout for userId ${userId} to the address ${address} till the date ${addresstime}`
           );
           await db2
@@ -179,7 +175,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           storedaddr: address,
           endDate: endTime,
         };
-        console.log(
+        logger.info(
           `User mapping to address for userId ${userId} to the address ${address} till the date ${addresstime}`
         );
         await db2.collection("userInfo").insertOne(newuserInfo);
@@ -187,7 +183,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       if (tokenmapInfo) {
         const { tokenIndex, endDate } = tokenmapInfo;
-        if (Date.now() < endDate) {
+        if (now < endDate) {
           if (tokenIndex > dispence_array.length - 1) {
             await db5
               .collection("tokenInfo")
@@ -201,12 +197,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
             .collection("tokenInfo")
             .updateOne(
               { userId },
-              { $set: { endDate: Date.now() + 7 * 24 * 60 * 60 * 1000 } }
+              { $set: { endDate: now + 7 * 24 * 60 * 60 * 1000 } }
             );
         }
-      }
-
-      if (!tokenmapInfo) {
+      } else {
         const newtokenInfo = {
           userId,
           tokenIndex: 0,
@@ -217,9 +211,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       if (depositInfo) {
         const { tokens, endDate } = depositInfo;
-        console.log(`tokens: ${tokens} endDate: ${endDate} now: ${now}`);
+        logger.info(
+          `userId: ${userId} tokens: ${tokens} endDate: ${endDate} now: ${now}`
+        );
 
-        if (tokens > 99 && Date.now() < endDate) {
+        if (tokens > 100 && now < endDate) {
           const remainingDays = Math.ceil(
             (endDate - now) / (24 * 60 * 60 * 1000)
           );
@@ -228,59 +224,27 @@ client.on(Events.InteractionCreate, async (interaction) => {
             ephemeral: true,
           });
         }
+        if (now > endDate) {
+          let endWeekTime = moment.setDate(moment.getDate() + 7);
+          logger.info(`Updating depositInfo to 0 for userId: ${userId}`);
+          await db
+            .collection("depositInfo")
+            .updateOne({ userId }, { $set: { tokens: 0 } });
+          await db
+            .collection("depositInfo")
+            .updateOne({ userId }, { $set: { endDate: endWeekTime } });
+        }
       } else {
         // If no deposit info exists for the user, create a new entry
+        logger.info(`creating new deposit info for userID ${userId}`);
+        let endDate = moment.setDate(moment.getDate() + 7);
         const newDepositInfo = {
           userId,
           tokens: 0,
-          endDate: Date.now() + 15 * 24 * 60 * 60 * 1000,
+          endDate: endDate,
         };
         await db.collection("depositInfo").insertOne(newDepositInfo);
       }
-
-      // Proceed with the deposit logic here
-      // Update the user's token balance and perform the transfer
-      // Add the deposited amount to the existing balance
-      const existTokenInfo = await db5
-        .collection("tokenInfo")
-        .findOne({ userId });
-      const { tokenIndex } = existTokenInfo;
-      const depositedAmount = dispence_array[tokenIndex];
-      const existingDepositInfo = await db
-        .collection("depositInfo")
-        .findOne({ userId });
-      const { tokens, endDate } = existingDepositInfo;
-
-      // Check if the user has reached the deposit limit
-      if (tokens >= 100 && Date.now() < endDate) {
-        const remainingDays = Math.ceil(
-          (endDate - Date.now()) / (24 * 60 * 60 * 1000)
-        );
-        return interaction.reply({
-          content: `You have reached the deposit limit. Please wait ${remainingDays} day(s) before depositing again.`,
-          ephemeral: true,
-        });
-      }
-
-      // Calculate the total tokens after the deposit
-      const totalTokens = tokens + depositedAmount;
-
-      // Check if the total tokens exceed the deposit limit
-      if (totalTokens > 100) {
-        const remainingTokens = 100 - tokens;
-        const remainingDays = Math.ceil(
-          (endDate - Date.now()) / (24 * 60 * 60 * 1000)
-        );
-        return interaction.reply({
-          content: `You can deposit a maximum of 100 tokens. Please wait ${remainingDays} day(s) before depositing again.`,
-          ephemeral: true,
-        });
-      }
-
-      // Update the user's deposit information and perform the transfer
-      await db
-        .collection("depositInfo")
-        .updateOne({ userId }, { $set: { tokens: totalTokens } });
 
       // 3 hours of cooldown
       let cooldownAmount = 3 * 60 * 60 * 1000;
@@ -291,7 +255,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         if (now < expirationTime) {
           const timeLeft = Math.ceil((expirationTime - now) / (1 * 60 * 1000));
-          console.log(`timeLeft: ${timeLeft} for user ${userId}`);
+          logger.info(`timeLeft: ${timeLeft} for user ${userId}`);
           return interaction.reply({
             content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
             ephemeral: true,
@@ -301,249 +265,257 @@ client.on(Events.InteractionCreate, async (interaction) => {
         cooldowns.set(userId, now);
       }
     }
+    const override_user = false;
 
-    if (interaction.commandName == "deposit-rollup") {
-      const userId = interaction.user.id;
-      const address = interaction.options.get("address", true).value;
-      const userRoles = interaction.member.roles.cache; // Get the roles of the user
-      const hasRole = userRoles.has("1199710866501799938");
-      if (!hasRole) {
-        console.log(`no access to faucet ${interaction.user.id}`);
-        return interaction.reply({
-          content: `You do not have the required role to use this command.`,
-          ephemeral: true,
-        });
-      }
-      if (!isValidAddress(address)) {
-        return interaction.reply({
-          content: `Not valid Address used. Please check your request again`,
-          ephemeral: true,
-        });
-      }
-      const moment = new Date();
-      const now = moment.getTime();
-      console.log(`rollup user: ${userId} logged now: ${moment}`);
-      let endTime = now + 3 * 24 * 60 * 60 * 1000;
-      let addresstime = new Date(endTime);
-      const WeeklydepositInfo = await db
-        .collection("WeeklyRollupdepositInfo")
-        .findOne({ userId });
-      const DailydepositInfo = await db
-        .collection("DailyRollupdepositInfo")
-        .findOne({ userId });
-      const usermapInfo = await db2.collection("userInfo").findOne({ userId });
-      const addressmapInfo = await db3
-        .collection("addressInfo")
-        .findOne({ address });
-
-      if (addressmapInfo) {
-        const { storedId, endDate } = addressmapInfo;
-        if (userId != storedId && now < endDate) {
-          console.log(
-            `Address ${address} has a different address ${userId} than stored one ${storedId}`
-          );
+    if (override_user) {
+      if (interaction.commandName == "deposit-rollup") {
+        const userId = interaction.user.id;
+        const address = interaction.options.get("address", true).value;
+        const userRoles = interaction.member.roles.cache; // Get the roles of the user
+        const hasRole = userRoles.has("1199836359288967168");
+        if (!hasRole) {
+          logger.info(`no access to faucet ${interaction.user.id}`);
           return interaction.reply({
-            content: `The address you provided doesn't match with the userId`,
+            content: `You do not have the required role to use this command.`,
             ephemeral: true,
           });
         }
-        if (now > endDate) {
-          console.log(
-            `Address for the userId ${userId} has been updated to ${address} after 3 day period`
-          );
-          console.log(
-            `updating address mapping to ID after 3 day timeout for userId ${userId} to the address ${address} till the date ${addresstime}`
-          );
-          await db3
-            .collection("addressInfo")
-            .updateOne({ address }, { $set: { storedId: userId } });
-          await db3
-            .collection("addressInfo")
-            .updateOne({ address }, { $set: { endDate: endTime } });
+        if (!isValidAddress(address)) {
+          return interaction.reply({
+            content: `Not valid Address used. Please check your request again`,
+            ephemeral: true,
+          });
         }
-      } else {
+        const moment = new Date();
+        const now = moment.getTime();
+        logger.info(`rollup user: ${userId} logged now: ${moment}`);
+        let endTime = now + 3 * 24 * 60 * 60 * 1000;
+        let addresstime = new Date(endTime);
+        const WeeklydepositInfo = await db
+          .collection("WeeklyRollupdepositInfo")
+          .findOne({ userId });
+        const DailydepositInfo = await db
+          .collection("DailyRollupdepositInfo")
+          .findOne({ userId });
+        const usermapInfo = await db2
+          .collection("userInfo")
+          .findOne({ userId });
+        const addressmapInfo = await db3
+          .collection("addressInfo")
+          .findOne({ address });
+
+        if (addressmapInfo) {
+          const { storedId, endDate } = addressmapInfo;
+          if (userId != storedId && now < endDate) {
+            logger.info(
+              `Address ${address} has a different address ${userId} than stored one ${storedId}`
+            );
+            return interaction.reply({
+              content: `The address you provided doesn't match with the userId`,
+              ephemeral: true,
+            });
+          }
+          if (now > endDate) {
+            logger.info(
+              `Address for the userId ${userId} has been updated to ${address} after 3 day period`
+            );
+            logger.info(
+              `updating address mapping to ID after 3 day timeout for userId ${userId} to the address ${address} till the date ${addresstime}`
+            );
+            await db3
+              .collection("addressInfo")
+              .updateOne({ address }, { $set: { storedId: userId } });
+            await db3
+              .collection("addressInfo")
+              .updateOne({ address }, { $set: { endDate: endTime } });
+          }
+        } else {
+          if (usermapInfo) {
+            const { storedaddr, endDate } = usermapInfo;
+            logger.info(storedaddr);
+            if (address != storedaddr && now < endDate) {
+              logger.info(
+                `userId ${userId} has a different address ${address} than stored one ${storedaddr}`
+              );
+              return interaction.reply({
+                content: `The userId doesn't match with the address`,
+                ephemeral: true,
+              });
+            }
+          }
+          const newuserInfo = {
+            address,
+            storedId: userId,
+            endDate: endTime,
+          };
+          logger.info(
+            `address mapping to ID for userId ${userId} to the address ${address} till the date ${addresstime}`
+          );
+          await db3.collection("addressInfo").insertOne(newuserInfo);
+        }
+
         if (usermapInfo) {
           const { storedaddr, endDate } = usermapInfo;
-          console.log(storedaddr);
           if (address != storedaddr && now < endDate) {
-            console.log(
+            logger.info(
               `userId ${userId} has a different address ${address} than stored one ${storedaddr}`
             );
+            //update the timer to 30mins as penalty
             return interaction.reply({
               content: `The userId doesn't match with the address`,
               ephemeral: true,
             });
           }
-        }
-        const newuserInfo = {
-          address,
-          storedId: userId,
-          endDate: endTime,
-        };
-        console.log(
-          `address mapping to ID for userId ${userId} to the address ${address} till the date ${addresstime}`
-        );
-        await db3.collection("addressInfo").insertOne(newuserInfo);
-      }
-
-      if (usermapInfo) {
-        const { storedaddr, endDate } = usermapInfo;
-        if (address != storedaddr && now < endDate) {
-          console.log(
-            `userId ${userId} has a different address ${address} than stored one ${storedaddr}`
+          if (now > endDate) {
+            logger.info(
+              `updating User mapping to address after 3 day timeout for userId ${userId} to the address ${address} till the date ${addresstime}`
+            );
+            await db2
+              .collection("userInfo")
+              .updateOne({ userId }, { $set: { storedaddr: address } });
+            await db2
+              .collection("userInfo")
+              .updateOne({ userId }, { $set: { endDate: endTime } });
+          }
+        } else {
+          const newuserInfo = {
+            userId,
+            storedaddr: address,
+            endDate: endTime,
+          };
+          logger.info(
+            `User mapping to address for userId ${userId} to the address ${address} till the date ${addresstime}`
           );
-          //update the timer to 30mins as penalty
-          return interaction.reply({
-            content: `The userId doesn't match with the address`,
-            ephemeral: true,
-          });
+          await db2.collection("userInfo").insertOne(newuserInfo);
         }
-        if (now > endDate) {
-          console.log(
-            `updating User mapping to address after 3 day timeout for userId ${userId} to the address ${address} till the date ${addresstime}`
-          );
-          await db2
-            .collection("userInfo")
-            .updateOne({ userId }, { $set: { storedaddr: address } });
-          await db2
-            .collection("userInfo")
-            .updateOne({ userId }, { $set: { endDate: endTime } });
-        }
-      } else {
-        const newuserInfo = {
-          userId,
-          storedaddr: address,
-          endDate: endTime,
-        };
-        console.log(
-          `User mapping to address for userId ${userId} to the address ${address} till the date ${addresstime}`
-        );
-        await db2.collection("userInfo").insertOne(newuserInfo);
-      }
 
-      if (WeeklydepositInfo) {
-        const { tokens, endDate } = WeeklydepositInfo;
-        console.log(`tokens: ${tokens} endDate: ${endDate} now: ${now}`);
+        if (WeeklydepositInfo) {
+          const { tokens, endDate } = WeeklydepositInfo;
+          logger.info(`tokens: ${tokens} endDate: ${endDate} now: ${now}`);
 
-        if (tokens >= 200 && now < endDate) {
-          const remainingDays = Math.ceil(
-            (endDate - now) / (24 * 60 * 60 * 1000)
-          );
-          return interaction.reply({
-            content: `You have reached the weekly deposit limit. Please wait ${remainingDays} day(s) before depositing again.`,
-            ephemeral: true,
-          });
-        }
-        if (now > endDate) {
-          console.log("updating weekly timing to 0");
+          if (tokens >= 200 && now < endDate) {
+            const remainingDays = Math.ceil(
+              (endDate - now) / (24 * 60 * 60 * 1000)
+            );
+            return interaction.reply({
+              content: `You have reached the weekly deposit limit. Please wait ${remainingDays} day(s) before depositing again.`,
+              ephemeral: true,
+            });
+          }
+          if (now > endDate) {
+            logger.info("updating weekly timing to 0");
+            await db
+              .collection("WeeklyRollupdepositInfo")
+              .updateOne({ userId }, { $set: { tokens: 0 } });
+          }
+        } else {
+          logger.info(`creating new weekly deposit info for userID ${userId}`);
+          let date = new Date();
+          let endDate = date.setDate(moment.getDate() + 7);
+          const newDepositInfo = {
+            userId,
+            tokens: 0,
+            endDate: endDate,
+          };
           await db
             .collection("WeeklyRollupdepositInfo")
-            .updateOne({ userId }, { $set: { tokens: 0 } });
+            .insertOne(newDepositInfo);
         }
-      } else {
-        console.log(`creating new weekly deposit info for userID ${userId}`);
-        let date = new Date();
-        let endDate = date.setDate(moment.getDate() + 7);
-        const newDepositInfo = {
-          userId,
-          tokens: 0,
-          endDate: endDate,
-        };
-        await db
-          .collection("WeeklyRollupdepositInfo")
-          .insertOne(newDepositInfo);
-      }
 
-      if (DailydepositInfo) {
-        const { tokens, endDate } = DailydepositInfo;
-        console.log(`tokens: ${tokens} endDate: ${endDate} now: ${now}`);
+        if (DailydepositInfo) {
+          const { tokens, endDate } = DailydepositInfo;
+          logger.info(`tokens: ${tokens} endDate: ${endDate} now: ${now}`);
 
-        if (tokens >= 25 && now < endDate) {
-          const remainingDays = Math.ceil(
-            (endDate - now) / (24 * 60 * 60 * 1000)
-          );
-          return interaction.reply({
-            content: `You have reached the daily deposit limit. Please wait ${remainingDays} day(s) before depositing again.`,
-            ephemeral: true,
-          });
-        }
-        if (now > endDate) {
-          console.log("updating daily timing to 0");
+          if (tokens >= 25 && now < endDate) {
+            const remainingDays = Math.ceil(
+              (endDate - now) / (24 * 60 * 60 * 1000)
+            );
+            return interaction.reply({
+              content: `You have reached the daily deposit limit. Please wait ${remainingDays} day(s) before depositing again.`,
+              ephemeral: true,
+            });
+          }
+          if (now > endDate) {
+            logger.info("updating daily timing to 0");
+            await db
+              .collection("DailyRollupdepositInfo")
+              .updateOne({ userId }, { $set: { tokens: 0 } });
+          }
+        } else {
+          logger.info(`creating new daily deposit info for userID ${userId}`);
+          let date = new Date();
+          let endDate = date.setDate(moment.getDate() + 1);
+          logger.info(date);
+          const newDepositInfo = {
+            userId,
+            tokens: 0,
+            endDate: endDate,
+          };
           await db
             .collection("DailyRollupdepositInfo")
-            .updateOne({ userId }, { $set: { tokens: 0 } });
+            .insertOne(newDepositInfo);
         }
-      } else {
-        console.log(`creating new daily deposit info for userID ${userId}`);
-        let date = new Date();
-        let endDate = date.setDate(moment.getDate() + 1);
-        console.log(date);
-        const newDepositInfo = {
-          userId,
-          tokens: 0,
-          endDate: endDate,
-        };
-        await db.collection("DailyRollupdepositInfo").insertOne(newDepositInfo);
-      }
 
-      let cooldownTime = 60 * 60 * 1000;
-      if (!rollupUserCd.has(userId)) {
-        rollupUserCd.set(userId, now);
-      } else {
-        const expirationTime = rollupUserCd.get(userId) + cooldownTime;
-        if (now < expirationTime) {
-          const timeLeft = Math.ceil((expirationTime - now) / (1 * 60 * 1000));
-          console.log(`timeLeft: ${timeLeft} for user ${userId}`);
-          return interaction.reply({
-            content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
-            ephemeral: true,
-          });
+        // let cooldownTime = 60 * 60 * 1000;
+        if (!rollupUserCd.has(userId)) {
+          rollupUserCd.set(userId, now);
+        } else {
+          const expirationTime = rollupUserCd.get(userId) + cooldownTime;
+          if (now < expirationTime) {
+            const timeLeft = Math.ceil(
+              (expirationTime - now) / (1 * 60 * 1000)
+            );
+            logger.info(`timeLeft: ${timeLeft} for user ${userId}`);
+            return interaction.reply({
+              content: `Please wait ${timeLeft} more minutes(s) before reusing the command.`,
+              ephemeral: true,
+            });
+          }
+          rollupUserCd.set(userId, now);
         }
-        rollupUserCd.set(userId, now);
+        // const depositedAmount = 5;
+        // const existingDepositInfo = await db
+        //   .collection("RollupdepositInfo")
+        //   .findOne({ userId });
+        // const { tokens, endDate } = existingDepositInfo;
+        // logger.info(`tokens = ${tokens}`);
+        // logger.info(`enddate = ${endDate}`);
+
+        // // Check if the user has reached the deposit limit
+        // if (tokens >= 10 && moment.getDate() < endDate) {
+        //   const remainingDays = Math.ceil(
+        //     (endDate - Date.now()) / (24 * 60 * 60 * 1000)
+        //   );
+        //   return interaction.reply({
+        //     content: `You have reached the deposit limit. Please wait ${remainingDays} day(s) before depositing again.`,
+        //     ephemeral: true,
+        //   });
+        // }
+
+        // // Calculate the total tokens after the deposit
+        // const totalTokens = tokens + depositedAmount;
+        // logger.info(totalTokens);
+
+        // // Check if the total tokens exceed the deposit limit
+        // if (totalTokens > 10) {
+        //   const remainingTokens = 100 - tokens;
+        //   const remainingDays = Math.ceil(
+        //     (endDate - Date.now()) / (24 * 60 * 60 * 1000)
+        //   );
+        //   logger.info(endDate - Date.now());
+        //   return interaction.reply({
+        //     content: `You can deposit a maximum of 100 tokens. Please wait ${remainingDays} day(s) before depositing again. 2`,
+        //     ephemeral: true,
+        //   });
+        // }
+
+        // // Update the user's deposit information and perform the transfer
+        // await db
+        //   .collection("RollupdepositInfo")
+        //   .updateOne({ userId }, { $set: { tokens: totalTokens } });
       }
-      // const depositedAmount = 5;
-      // const existingDepositInfo = await db
-      //   .collection("RollupdepositInfo")
-      //   .findOne({ userId });
-      // const { tokens, endDate } = existingDepositInfo;
-      // console.log(`tokens = ${tokens}`);
-      // console.log(`enddate = ${endDate}`);
-
-      // // Check if the user has reached the deposit limit
-      // if (tokens >= 10 && moment.getDate() < endDate) {
-      //   const remainingDays = Math.ceil(
-      //     (endDate - Date.now()) / (24 * 60 * 60 * 1000)
-      //   );
-      //   return interaction.reply({
-      //     content: `You have reached the deposit limit. Please wait ${remainingDays} day(s) before depositing again.`,
-      //     ephemeral: true,
-      //   });
-      // }
-
-      // // Calculate the total tokens after the deposit
-      // const totalTokens = tokens + depositedAmount;
-      // console.log(totalTokens);
-
-      // // Check if the total tokens exceed the deposit limit
-      // if (totalTokens > 10) {
-      //   const remainingTokens = 100 - tokens;
-      //   const remainingDays = Math.ceil(
-      //     (endDate - Date.now()) / (24 * 60 * 60 * 1000)
-      //   );
-      //   console.log(endDate - Date.now());
-      //   return interaction.reply({
-      //     content: `You can deposit a maximum of 100 tokens. Please wait ${remainingDays} day(s) before depositing again. 2`,
-      //     ephemeral: true,
-      //   });
-      // }
-
-      // // Update the user's deposit information and perform the transfer
-      // await db
-      //   .collection("RollupdepositInfo")
-      //   .updateOne({ userId }, { $set: { tokens: totalTokens } });
     }
 
-    const override_user = false;
     if (override_user) {
       if (interaction.commandName == "force-transfer") {
         const userRoles = interaction.member.roles.cache; // Get the roles of the user
@@ -551,13 +523,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const hasBypassRole = userRoles.has(bypassRole);
 
         if (!hasBypassRole) {
-          console.log(`does not have the bypass role ${interaction.user.id}`);
+          logger.info(`does not have the bypass role ${interaction.user.id}`);
           return interaction.reply({
             content: `You do not have the required role to use this command.`,
             ephemeral: true,
           });
         } else {
-          console.log(
+          logger.info(
             `using the force transfer and hasBypassRole: ${hasBypassRole}`
           );
           const userId = interaction.user.id;
@@ -605,30 +577,3 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 // Log in to Discord
 client.login(process.env.DISCORD_TOKEN);
-
-async function checkBalance() {
-  const ADDRESS = "5D5L2sbWNMGPzTrR58GbWuiV8gVkhHqR7815zmyqPynWVP7J";
-  try {
-    let api = await createApiInstance();
-    console.log(api.isConnected);
-    const { data: balance } = await api.query.system.account(ADDRESS);
-    console.log(`Balance of ${ADDRESS} is ${balance.free}`);
-    let val = toUnit(balance.free);
-    console.log(val);
-    if (val > 100) {
-      console.log("Balance is greater than 100");
-    } else {
-      console.log("Balance is less than 100");
-    }
-    // await disApi(api);
-  } catch (err) {
-    console.log("error fetching balance", err);
-  }
-}
-
-function toUnit(balance) {
-  let decimals = 18;
-  let base = new BN(10).pow(new BN(decimals));
-  let dm = new BN(balance).divmod(base);
-  return parseFloat(dm.div.toString() + "." + dm.mod.toString());
-}
