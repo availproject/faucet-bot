@@ -101,7 +101,7 @@ export const transferAccount = async (userId, to, mnemonic) => {
       tracer.dogstatsd.gauge("faucet.balance", Number(free_bal));
       if (free_bal < 5000) {
         logger.info(`balance is low ${free_bal}`);
-        sendAlert(`Balance is getting low ${free_bal}`);
+        // sendAlert(`Balance is getting low ${free_bal}`);
       }
       const transfer = api.tx.balances.transfer(to, value);
       const DailydepositInfo = await db
